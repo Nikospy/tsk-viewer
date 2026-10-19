@@ -268,6 +268,24 @@ public struct HerdrClient: Sendable {
         }
     }
 
+    /// An empty name clears it, so the folder shows again. herdr accepts `[a-z][a-z0-9_-]{0,31}`; spaces become dashes.
+    public func rename(_ agent: HerdrAgent, to name: String) async -> String? {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            .replacingOccurrences(of: #"\s+"#, with: "-", options: .regularExpression)
+        let invalid = L("a name is lowercase letters, digits, - or _ (up to 32), starting with a letter",
+                        pl: "nazwa to małe litery bez polskich znaków, cyfry, - albo _ (do 32), na początku litera")
+        guard name.isEmpty || name.range(of: #"^[a-z][a-z0-9_-]{0,31}$"#, options: .regularExpression) != nil else { return invalid }
+        do {
+            let output = try await run(["agent", "rename", agent.paneID] + (name.isEmpty ? ["--clear"] : [name]))
+            if output.exitCode == 0 { return nil }
+            let code = HerdrParse.errorCode(output.stderr)
+            if code == "invalid_agent_name" { return invalid }
+            return "herdr agent rename: \(code ?? L("code", pl: "kod") + " \(output.exitCode)")"
+        } catch {
+            return error.localizedDescription
+        }
+    }
+
     private func run(_ arguments: [String]) async throws -> CommandOutput {
         do {
             return try await runner.run(executable: executablePath, arguments: arguments)
@@ -320,6 +338,27 @@ public enum AgentMessage {
 
     private static func oneLine(_ text: String) -> String {
         text.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+    }
+}
+
+/// Agents sign the notes with `Herdr: $HERDR_PANE_ID` when they hand a task to the user, so a reply goes back to them.
+public enum AgentSender {
+    static let prefix = "Herdr:"
+
+    public static func isMarker(_ line: String) -> Bool {
+        pane(line) != nil
+    }
+
+    /// The last signature wins: whoever asked most recently is waiting for the answer.
+    public static func pane(in notes: String) -> String? {
+        notes.components(separatedBy: .newlines).last { pane($0) != nil }.flatMap { pane($0) }
+    }
+
+    private static func pane(_ line: String) -> String? {
+        let trimmed = line.trimmingCharacters(in: .whitespaces)
+        guard trimmed.hasPrefix(prefix) else { return nil }
+        let value = trimmed.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
+        return value.range(of: #"^w[0-9A-Za-z]+:p[0-9A-Za-z]+$"#, options: .regularExpression) != nil ? value : nil
     }
 }
 

@@ -155,3 +155,32 @@ func knownDialogsBlockTheSend(kind: String, name: String, dialog: String) throws
     #expect(split.others == [idleElsewhere])
     #expect(!PathMatch.inside(base.path + "/cai", real + "/caissa"))
 }
+
+@Test func senderIsTheLastValidSignatureInTheNotes() {
+    let notes = """
+    Herdr: w1:p1
+    Which option?
+    - A
+    Herdr: w5Y:p3
+    Odp: B
+    Herdr: not-a-pane
+    """
+    #expect(AgentSender.pane(in: notes) == "w5Y:p3")
+    #expect(AgentSender.pane(in: "no signature") == nil)
+    #expect(AgentSender.isMarker("  Herdr: w2:p7 "))
+    #expect(!AgentSender.isMarker("Herdr: wkrótce"))
+}
+
+@Test func renameNormalizesClearsAndRefusesInvalidNames() async {
+    let agent = HerdrAgent(paneID: "w1:p2", terminalID: "t", kind: "claude", status: .idle, cwd: "/tmp")
+    let script = HerdrScript([
+        (["agent", "rename", "w1:p2", "code-reviewer"], CommandOutput(exitCode: 0, stdout: "")),
+        (["agent", "rename", "w1:p2", "--clear"], CommandOutput(exitCode: 0, stdout: "")),
+    ])
+    let client = HerdrClient(executablePath: "/bin/herdr", runner: script)
+    #expect(await client.rename(agent, to: " Code reviewer ") == nil)
+    #expect(await client.rename(agent, to: "") == nil)
+    #expect(await client.rename(agent, to: "--clear") != nil)
+    #expect(await client.rename(agent, to: "żółw") != nil)
+    #expect(await script.calls.count == 2)
+}

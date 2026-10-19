@@ -152,13 +152,34 @@ final class ViewerModel: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: "agentByProject") }
     }
 
-    func chooseAgent(_ pane: String?) {
-        targetPane = pane
-        remembered[contextKey] = pane
+    /// The pane that signed the tasks' notes; checked tasks from different agents have no single sender.
+    var senderPane: String? {
+        let panes = Set(dispatchTasks.compactMap { AgentSender.pane(in: details[$0.id]?.task.notes ?? $0.notes) })
+        return panes.count == 1 ? panes.first : nil
     }
 
-    /// The agent last chosen for this project, else the only reachable agent working in it.
+    var sender: HerdrAgent? { senderPane.flatMap { pane in agents.first { $0.paneID == pane } } }
+
+    /// Picks made against the sender stay for these tasks only; polling would otherwise restore the sender.
+    private var overrides: [String: String?] = [:]
+    private var dispatchKey: String { dispatchTasks.map(\.id).sorted().joined(separator: ",") }
+
+    func chooseAgent(_ pane: String?) {
+        targetPane = pane
+        if senderPane != nil { overrides[dispatchKey] = .some(pane) } else { remembered[contextKey] = pane }
+    }
+
+    /// The agent that asked, while it is still reachable; else the one last chosen for this project,
+    /// else the only reachable agent working in it.
     func resolveTarget() {
+        if let override = overrides[dispatchKey], override.map({ pane in agents.contains { $0.paneID == pane } }) ?? true {
+            targetPane = override
+            return
+        }
+        if let sender, sender.reachable {
+            targetPane = sender.paneID
+            return
+        }
         if let pane = remembered[contextKey], agents.contains(where: { $0.paneID == pane }) {
             targetPane = pane
             return
@@ -185,7 +206,19 @@ final class ViewerModel: ObservableObject {
         case .blocked: L("waiting for a decision", pl: "czeka na decyzję")
         case .unknown: L("unknown state", pl: "stan nieznany")
         }
-        return "\(agent.name ?? agent.folder) · \(agent.kind) · \(status)"
+        let asked = agent.paneID == senderPane ? L(" · asked", pl: " · pytał") : ""
+        return "\(agent.name ?? agent.folder) · \(agent.kind) · \(status)\(asked)"
+    }
+
+    /// Renames the chosen agent in Herdr; an empty name brings back the folder.
+    func renameTarget(_ name: String) async {
+        guard let agent = targetAgent else { return }
+        if let problem = await herdr.rename(agent, to: name) {
+            dispatch = ("! \(problem)", false)
+            return
+        }
+        lastCommand = "herdr agent rename \(agent.paneID) …"
+        await refreshAgents()
     }
 
     /// Sends the checked tasks (or the open one) to the chosen agent for discussion; statuses stay as they are.
@@ -233,6 +266,8 @@ final class ViewerModel: ObservableObject {
             } else {
                 details[id] = Detail(task: task)
             }
+            // Full notes arrive only now, and with them the sender's signature.
+            if checked.isEmpty && selectedID == id { resolveTarget() }
         } catch {
             detailError = error.localizedDescription
         }

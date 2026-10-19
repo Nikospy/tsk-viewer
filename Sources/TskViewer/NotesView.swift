@@ -28,6 +28,8 @@ struct NotesView: View {
                 code.append(line)
             } else {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
+                // The sender's signature is shown in the agent strip, not as note text.
+                if AgentSender.isMarker(trimmed) { continue }
                 // Replies written in either language stay recognizable after switching.
                 if let prefix = Language.allCases.map(\.replyPrefix).first(where: { trimmed.hasPrefix($0) }) {
                     let text = trimmed.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
