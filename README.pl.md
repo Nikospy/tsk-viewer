@@ -8,6 +8,8 @@ Film (22 s, po angielsku) w [pełnej jakości MP4](docs/demo.mp4).
 
 Natywna aplikacja macOS 15+ w pasku menu, bez ikony w Docku. Widok „Czeka na mnie” zbiera zadania `blocked` i `review` ze wszystkich projektów i biurka, grupując je według projektu. Ikona pokazuje ich liczbę (przy zerze sam symbol). Przełącznik „Pozostałe zadania” udostępnia inne żywe statusy tylko do odczytu. Szczegóły zawierają notatki z podstawowym markdownem i kroki tylko do odczytu.
 
+Gdy agent podpisze notatki linią `Herdr: <panel>`, odpowiedź domyślnie trafia właśnie do niego, o ile jest osiągalny. Prawy klik na ikonie → „Nazwij agentów” pokazuje wszystkich agentów Herdr z tytułami terminali i pozwala nazwać ich naraz.
+
 SwiftPM bez zewnętrznych zależności: `TskCore` zawiera klienta CLI i logikę, `TskViewer` — interfejs SwiftUI/AppKit.
 
 ## Budowanie i uruchamianie

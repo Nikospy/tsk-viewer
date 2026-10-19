@@ -6,6 +6,8 @@ A native macOS 15+ menu bar app for the [tsk](https://gettsk.sh) task board, wit
 
 Decisions go back to the agent: after you agree, accept or reply, TskViewer pastes a one-line `tsk:` message into the [Herdr](https://herdr.dev) pane of the agent working in that project.
 
+When the agent signs its notes with a `Herdr: <pane>` line, the reply defaults to exactly that agent while it is reachable. Right-click the menu bar icon → “Name agents” to see every Herdr agent with its terminal title and give them all names in one go.
+
 ![TskViewer: an agent asks, you answer from the menu bar, the reply lands in the agent's terminal](docs/demo.gif)
 
 22 s demo, also in [full quality MP4](docs/demo.mp4).
