@@ -78,8 +78,8 @@ struct ViewerPanel: View {
             .disabled(model.loading || model.saving || model.loadingDetail)
             .help(refreshHelp)
             Menu {
-                Button(L("Agent names…", pl: "Nazwy agentów…")) { model.openAgentNames?() }
-                SettingsLink { Text(L("Settings…", pl: "Ustawienia…")) }
+                Button(L("Name agents", pl: "Nazwij agentów")) { model.openAgentNames?() }
+                Button(L("Settings", pl: "Ustawienia")) { model.openSettings?() }
                 Divider()
                 Button(L("Quit TskViewer", pl: "Zakończ TskViewer")) { NSApp.terminate(nil) }
             } label: {
@@ -497,7 +497,7 @@ private struct AgentStrip: View {
                 Section(L("others", pl: "pozostałe")) { ForEach(split.others) { item($0) } }
             }
             Divider()
-            Button(L("Agent names…", pl: "Nazwy agentów…")) { model.openAgentNames?() }
+            Button(L("Name agents", pl: "Nazwij agentów")) { model.openAgentNames?() }
             Button(L("no agent", pl: "bez agenta")) { model.chooseAgent(nil) }
         } label: {
             HStack(spacing: 6) {

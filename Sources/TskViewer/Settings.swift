@@ -5,7 +5,7 @@ import TskCore
 /// Settings in the same Grafit / iA Writer Mono language as the panel.
 struct SettingsView: View {
     @ObservedObject var model: ViewerModel
-    @Environment(\.dismiss) private var dismiss
+    let close: () -> Void
     @State private var path = ""
     @State private var seconds = 10.0
     @State private var shortcut = Shortcut.stored
@@ -49,12 +49,12 @@ struct SettingsView: View {
 
             HStack(spacing: 8) {
                 Spacer()
-                Button(L("cancel", pl: "anuluj")) { dismiss() }
+                Button(L("cancel", pl: "anuluj"), action: close)
                     .buttonStyle(GhostButtonStyle())
                     .keyboardShortcut(.cancelAction)
                 Button(L("save", pl: "zapisz")) {
                     model.saveSettings(path: path, seconds: seconds, language: language)
-                    dismiss()
+                    close()
                 }
                 .buttonStyle(SolidButtonStyle(fill: Theme.accent, hoverFill: Theme.accentHover, foreground: Theme.accentText))
                 .keyboardShortcut(.defaultAction)
@@ -70,7 +70,6 @@ struct SettingsView: View {
         .background(Theme.panel)
         .environment(\.colorScheme, .dark)
         .focusEffectDisabled()
-        .background(WindowStyler())
         .onAppear {
             path = model.executableSetting
             seconds = model.interval
@@ -159,23 +158,4 @@ private struct ShortcutRecorder: View {
         monitor = nil
         recording = false
     }
-}
-
-/// Blends the settings window's title bar into the Grafit background.
-private struct WindowStyler: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async {
-            guard let window = view.window else { return }
-            window.titleVisibility = .hidden
-            window.titlebarAppearsTransparent = true
-            window.backgroundColor = NSColor(Theme.panel)
-            window.appearance = NSAppearance(named: .darkAqua)
-            window.isMovableByWindowBackground = true
-            window.isRestorable = false
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: NSView, context: Context) {}
 }

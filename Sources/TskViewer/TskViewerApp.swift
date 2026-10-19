@@ -8,8 +8,8 @@ import UserNotifications
 struct TskViewerApp: App {
     @NSApplicationDelegateAdaptor(ViewerDelegate.self) private var delegate
     var body: some Scene {
-        // The app lives in the menu bar: no settings window at launch or restored from last time.
-        Settings { SettingsView(model: delegate.model) }
+        // The delegate owns every window, so the menu bar icon can open them; SwiftUI still wants one scene.
+        Settings { EmptyView() }
             .defaultLaunchBehavior(.suppressed)
             .restorationBehavior(.disabled)
     }
@@ -23,6 +23,7 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
     private var subscriptions: Set<AnyCancellable> = []
     private var notificationCenter: UNUserNotificationCenter?
     private var namesWindow: NSWindow?
+    private var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -35,6 +36,7 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         model.closePanel = { [weak self] in self?.panel.hide() }
         model.openAgentNames = { [weak self] in self?.showAgentNames() }
+        model.openSettings = { [weak self] in self?.showSettings() }
         model.$tasks.sink { [weak self] tasks in
             let count = TaskGrouping.attentionCount(tasks)
             self?.statusItem?.button?.image = NSImage(systemSymbolName: count == 0 ? "tray" : "tray.full",
@@ -66,7 +68,8 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
     private func showMenu() {
         guard let item = statusItem else { return }
         let menu = NSMenu()
-        menu.addItem(withTitle: L("Agent names…", pl: "Nazwy agentów…"), action: #selector(showAgentNames), keyEquivalent: "").target = self
+        menu.addItem(withTitle: L("Name agents", pl: "Nazwij agentów"), action: #selector(showAgentNames), keyEquivalent: "").target = self
+        menu.addItem(withTitle: L("Settings", pl: "Ustawienia"), action: #selector(showSettings), keyEquivalent: ",").target = self
         menu.addItem(.separator())
         menu.addItem(withTitle: L("Quit TskViewer", pl: "Zakończ TskViewer"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.menu = menu
@@ -74,27 +77,35 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
         item.menu = nil
     }
 
-    /// A fresh view each time, so drafts from a cancelled visit do not come back.
     @objc private func showAgentNames() {
+        show(&namesWindow, title: L("Name agents", pl: "Nazwij agentów")) { close in AgentNamesView(model: self.model, close: close) }
+        Task { await model.refresh() }
+    }
+
+    @objc private func showSettings() {
+        show(&settingsWindow, title: L("Settings", pl: "Ustawienia")) { close in SettingsView(model: self.model, close: close) }
+    }
+
+    /// A fresh view each time, so drafts from a cancelled visit do not come back.
+    private func show<Content: View>(_ slot: inout NSWindow?, title: String, content: (@escaping () -> Void) -> Content) {
         panel.hide()
-        let window = namesWindow ?? {
+        let window = slot ?? {
             let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
-            window.title = L("Agent names", pl: "Nazwy agentów")
             window.titleVisibility = .hidden
             window.titlebarAppearsTransparent = true
             window.backgroundColor = NSColor(Theme.panel)
             window.appearance = NSAppearance(named: .darkAqua)
             window.isMovableByWindowBackground = true
             window.isRestorable = false
-            namesWindow = window
             return window
         }()
-        window.contentViewController = NSHostingController(rootView: AgentNamesView(model: model) { [weak window] in window?.close() })
+        slot = window
+        window.title = title
+        window.contentViewController = NSHostingController(rootView: content { [weak window] in window?.close() })
         window.center()
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-        Task { await model.refresh() }
     }
 
     /// The shortcut opens the panel in the middle of the screen; the menu bar icon opens it under the icon.

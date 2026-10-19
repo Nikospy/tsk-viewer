@@ -39,6 +39,7 @@ final class ViewerModel: ObservableObject {
     var notify: (([TaskTransition]) -> Void)?
     var closePanel: (() -> Void)?
     var openAgentNames: (() -> Void)?
+    var openSettings: (() -> Void)?
 
     private var client: TskClient
     private var service: TaskActionService
