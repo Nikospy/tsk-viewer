@@ -1,0 +1,15 @@
+  Box: 331×157 @ 222,630 (przewinięcie 0,1879) — viewport 1708×1025
+  Styl background-color: rgba(0, 0, 0, 0)
+  Styl border-radius: 0px
+  Styl color: oklch(0.2679 0.0036 106.6)
+  Styl font-family: "Rethink Sans", "Rethink Sans Fallback", "Rethink Sans",
+  sans-serif
+  Styl font-size: 16px
+  Styl font-weight: 400
+                            3 new messages (click) ↓
+                                       ✔ Update installed · Restart to update
+─────────────────────────────────────────────────── Dostęp do ostatnich zmian ─
+❯
+───────────────────────────────────────────────────────────────────────────────
+  ➜ mewitz-main git:(szkolenia) ctx:26%
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents · PR #5

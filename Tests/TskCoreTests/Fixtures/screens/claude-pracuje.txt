@@ -1,0 +1,15 @@
+▝▜██████▀  Sonnet 5.5 · Claude Pro
+ ▝▝   ▝▝   /…/scratchpad/projekt-f1
+
+
+❯ Bez narzędzi: wypisz słownie liczby od 1 do 40, każdą w
+  osobnej linii.
+
+· Newspapering…
+
+───────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────
+  ➜ projekt-f1 git:(main)
+  ⏸ plan mode on (shift+tab to cycle) · ← for agents
+                                           ◐ medium · /effort

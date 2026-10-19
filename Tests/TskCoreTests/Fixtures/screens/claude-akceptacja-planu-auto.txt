@@ -1,0 +1,15 @@
+ 4. Zweryfikować: build/lint, jeśli istnieją, i sprawdzić tekst
+    w uruchomionej stronie.
+ Weryfikacja
+ - git diff pokazuje jedną zmianę tekstu.
+ - Nagłówek renderuje się jako „Witaj".
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+─────────────────────────────────────────────────────────────────
+ Claude has written up a plan and is ready to execute. Would you
+ like to proceed?
+ ❯ 1. Yes, and use auto mode
+   2. Yes, manually approve edits
+   3. Tell Claude what to change
+      shift+tab to approve with this feedback
+ ctrl+g to edit in VS Code ·
+ ~/.claude/plans/uwagi-w-a-ciciela-do-ui-adaptive-pudding.md

@@ -1,0 +1,15 @@
+│ ├─  Utworzyć worktree caissa-odpornosc i gałąź odpornosc-1 z main; sprawdzić aktualny kontrakt projektu.                                                   │
+│ ├─  Ustalić bez modelu próg ucinania omp i zapewnić pełne zlecenie dla etapów bez narzędzi z testem regresji.                                              │
+│ ├─  Naprawić górny type schematu królowej i sprawdzić wszystkie schematy claude --json-schema z testem.                                                    │
+│ ├─  Klonować node_modules przy śledzonych zagnieżdżonych lockfile’ach z istniejącymi zabezpieczeniami i dowodem metody; dodać test.                        │
+│ ├─  Dopisać w SKILL.md sprawdzanie blokady środowiska i poprawę setup przed ponowieniem worker-blocked.                                                    │
+│ ├─  Uruchomić bun install && bun run typecheck && bun run test oraz smoke zmienionych ścieżek.                                                             │
+│ ├─  Sprawdzić spójność wszystkich wywołań i minimalny zakres zmian; commit tylko na odpornosc-1.                                                           │
+│ └─  Zapisać raport .wejscia/zlecenie-29-raport.md w głównym katalogu i zakończyć GOTOWE odpornosc-1.                                                       │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ GOTOWE odpornosc-1
+
+                                                                                                                        󰧑 THINK: Fix queen truncated order bugs
+ 󰪣 GPT-6.1-Sol ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────  53.9%/500K 󰁨
+╰─

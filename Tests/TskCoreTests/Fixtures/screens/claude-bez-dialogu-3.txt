@@ -1,0 +1,15 @@
+⏺ Monitor event: faza: arbiter · kontrole izolacja-rol-2: wolne (>60s) i padnięte testy, zmiana fazy
+
+⏺ Diagnoza się potwierdziła. Wznowiona kontrola izolacja-rol-2, tym razem przy otwartej pokrywie, przeszła cała: 247 testów dobrze, 0 błędów, żaden test nie
+  trwał dłużej niż minutę. Job jest teraz u arbitra.
+
+✻ Cooked for 7s · done 12:16 AM · 1 monitor still running
+
+※ recap: Pilnuję jobów Caissy jako obserwator. Wolne kontrole wynikały z usypiania laptopa, a wznowiony `izolacja-rol-2` przeszedł testy i czeka teraz na ocenę
+  arbitra. Następny krok: dać Codexowi T4 z tablicy, czyli odświeżenie dokumentów stanu.
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  ➜ caissa git:(main) ctx:80%                                                                                          ✔ Update installed · Restart to update
+  ⏵⏵ auto mode on · 1 monitor · ⧉ zapis-partii · ← for agents

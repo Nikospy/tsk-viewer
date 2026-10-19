@@ -1,0 +1,8 @@
+• Working (0s • esc to interrupt)
+• Messages to be submitted after next tool call (press esc to
+  interrupt and send immediately)
+  ↳ PRZYPIS-W-TRAKCIE: na końcu dopisz jedno słowo DRUGA.
+                                    ⚠ weekly limit: only 5% left
+› Ask Codex to do anything
+  GPT-5.6-Sol medium · /private/tmp/claude-501/-Users-admin-dev-…
+  ← for agents · ? for shortcuts       ⚠ 4 warnings · f2 to view

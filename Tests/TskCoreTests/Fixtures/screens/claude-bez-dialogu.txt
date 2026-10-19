@@ -1,0 +1,15 @@
+compinit:527: no such file or directory: /opt/homebrew/share/zsh/
+site-functions/_docker-compose
+compinit:shift:529: shift count must be <= $#
+➜  projekt-f1 claude --permission-mode plan --disallowedTools Edi
+t,Write,NotebookEdit
+ ▐▛███▛█   Claude Code v2.1.295
+▝▜██████▀  Sonnet 5.5 · Claude Pro
+ ▝▝   ▝▝   /…/scratchpad/projekt-f1
+
+
+─────────────────────────────────────────────────────────────────
+❯ Try "how do I log an error?"
+─────────────────────────────────────────────────────────────────
+  ➜ projekt-f1 git:(main)
+  ⏸ plan mode on (shift+tab to cycle) · ← for agents

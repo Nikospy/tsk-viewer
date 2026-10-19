@@ -1,0 +1,15 @@
+  - Plik: index.html, linia 2
+  - Zmiana: <h1 class="naglowek">Hello</h1> → <h1
+    class="naglowek">Witaj</h1>
+  - Sprawdzenie: grep -n '<h1' index.html
+
+  Niczego nie edytowałem, zgodnie z „tylko plan". Mam to
+  wprowadzić?
+
+✻ Cooked for 11s · done 2:03 PM
+
+───────────────────────────────────────────────────────────────
+❯ tak, zmień
+───────────────────────────────────────────────────────────────
+  ➜ projekt-f1 git:(main) ctx:94%
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← for agents

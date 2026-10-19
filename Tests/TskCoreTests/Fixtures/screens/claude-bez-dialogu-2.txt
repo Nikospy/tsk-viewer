@@ -1,0 +1,15 @@
+claude --permission-mode plan --disallowedTools Edit,Write,Note
+bookEdit,Bash
+➜  projekt-f1 claude --permission-mode plan --disallowedTools E
+dit,Write,NotebookEdit,Bash
+ ▐▛███▛█   Claude Code v2.1.295
+▝▜██████▀  Sonnet 5.5 · Claude Pro
+ ▝▝   ▝▝   /…/scratchpad/projekt-f1
+
+
+───────────────────────────────────────────────────────────────
+❯ Try "how do I log an error?"
+───────────────────────────────────────────────────────────────
+  ➜ projekt-f1 git:(main)
+  ⏸ plan mode on (shift+tab to cycle) · ← for agents
+                                           ◐ medium · /effort

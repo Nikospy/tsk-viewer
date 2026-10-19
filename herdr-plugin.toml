@@ -1,0 +1,20 @@
+# TskViewer as a Herdr plugin: built on install, launched when the Herdr server starts.
+
+id = "tsk-viewer"
+name = "TskViewer"
+version = "1.0.0"
+description = "macOS menu bar app for the tsk board: tasks waiting for you, answers sent straight to the agent's Herdr pane."
+min_herdr_version = "0.9.3"
+platforms = ["macos"]
+
+[[build]]
+command = ["bash", "scripts/build-app.sh"]
+
+[[startup]]
+command = ["bash", "scripts/herdr-start.sh"]
+
+[[actions]]
+id = "start"
+title = "Start TskViewer"
+description = "Launch the menu bar app if it is not running."
+command = ["bash", "scripts/herdr-start.sh"]
