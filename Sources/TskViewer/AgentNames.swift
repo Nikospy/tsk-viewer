@@ -9,6 +9,8 @@ struct AgentNamesView: View {
     @State private var drafts: [String: String] = [:]
     @State private var failures: [String: String] = [:]
     @State private var saving = false
+    /// A ScrollView has no height of its own in a window sized to its content, so it takes the rows' height.
+    @State private var rowsHeight: CGFloat = 0
 
     private var agents: [HerdrAgent] {
         model.agents.sorted { ($0.folder, $0.paneID) < ($1.folder, $1.paneID) }
@@ -32,7 +34,7 @@ struct AgentNamesView: View {
             HStack(spacing: 10) {
                 Text("tsk").font(Theme.mono(13, .bold)).foregroundStyle(Theme.accent)
                 Text("~").foregroundStyle(Theme.faint)
-                Text(L("agent names", pl: "nazwy agentów")).font(Theme.mono(13, .semibold))
+                Text(L("name agents", pl: "nazwij agentów")).font(Theme.mono(13, .semibold))
                 Text("[\(agents.count)]").foregroundStyle(Theme.faint)
             }
             Text(L("lowercase letters, digits, - and _ · an empty field removes the name · agents also name themselves",
@@ -49,9 +51,10 @@ struct AgentNamesView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(agents) { row($0) }
                     }
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                 }
                 .scrollIndicators(.never)
-                .frame(maxHeight: 420)
+                .frame(height: min(rowsHeight, 420))
             }
 
             HStack(spacing: 8) {
@@ -94,7 +97,7 @@ struct AgentNamesView: View {
         return VStack(alignment: .leading, spacing: 5) {
             HStack(spacing: 14) {
                 TextField("", text: Binding(get: { draft(agent) }, set: { drafts[agent.paneID] = $0; failures[agent.paneID] = nil }),
-                          prompt: Text(agent.folder).foregroundColor(Theme.faint))
+                          prompt: Text(L("no name", pl: "bez nazwy")).foregroundColor(Theme.faint))
                     .textFieldStyle(.plain)
                     .font(Theme.mono(13))
                     .padding(.horizontal, 10).frame(width: 220, height: 32)
