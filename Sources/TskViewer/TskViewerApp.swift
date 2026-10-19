@@ -22,6 +22,7 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
     private lazy var panel = PanelWindow(rootView: ViewerPanel(model: model))
     private var subscriptions: Set<AnyCancellable> = []
     private var notificationCenter: UNUserNotificationCenter?
+    private var namesWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -31,7 +32,9 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
         item.button?.imagePosition = .imageLeading
         item.button?.target = self
         item.button?.action = #selector(togglePanel)
+        item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         model.closePanel = { [weak self] in self?.panel.hide() }
+        model.openAgentNames = { [weak self] in self?.showAgentNames() }
         model.$tasks.sink { [weak self] tasks in
             let count = TaskGrouping.attentionCount(tasks)
             self?.statusItem?.button?.image = NSImage(systemSymbolName: count == 0 ? "tray" : "tray.full",
@@ -52,7 +55,46 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
     }
 
     @objc private func togglePanel() {
+        if let event = NSApp.currentEvent, event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+            showMenu()
+            return
+        }
         if panel.isShown { panel.hide() } else if !panel.justClosed { showPanel() }
+    }
+
+    /// Right-click on the menu bar icon: what does not belong in the panel itself.
+    private func showMenu() {
+        guard let item = statusItem else { return }
+        let menu = NSMenu()
+        menu.addItem(withTitle: L("Agent names…", pl: "Nazwy agentów…"), action: #selector(showAgentNames), keyEquivalent: "").target = self
+        menu.addItem(.separator())
+        menu.addItem(withTitle: L("Quit TskViewer", pl: "Zakończ TskViewer"), action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        item.menu = menu
+        item.button?.performClick(nil)
+        item.menu = nil
+    }
+
+    /// A fresh view each time, so drafts from a cancelled visit do not come back.
+    @objc private func showAgentNames() {
+        panel.hide()
+        let window = namesWindow ?? {
+            let window = NSWindow(contentRect: .zero, styleMask: [.titled, .closable, .fullSizeContentView], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.title = L("Agent names", pl: "Nazwy agentów")
+            window.titleVisibility = .hidden
+            window.titlebarAppearsTransparent = true
+            window.backgroundColor = NSColor(Theme.panel)
+            window.appearance = NSAppearance(named: .darkAqua)
+            window.isMovableByWindowBackground = true
+            window.isRestorable = false
+            namesWindow = window
+            return window
+        }()
+        window.contentViewController = NSHostingController(rootView: AgentNamesView(model: model) { [weak window] in window?.close() })
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        Task { await model.refresh() }
     }
 
     /// The shortcut opens the panel in the middle of the screen; the menu bar icon opens it under the icon.

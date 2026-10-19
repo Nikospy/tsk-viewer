@@ -22,6 +22,8 @@ public struct HerdrAgent: Equatable, Sendable, Identifiable {
     public let foregroundCwd: String?
     public let name: String?
     public let session: String?
+    /// The terminal title the agent keeps up to date, e.g. its session topic; tells agents in one folder apart.
+    public let title: String?
 
     public var id: String { paneID }
     public var identity: AgentIdentity { AgentIdentity(paneID: paneID, terminalID: terminalID, session: session) }
@@ -33,9 +35,9 @@ public struct HerdrAgent: Equatable, Sendable, Identifiable {
     public var reachable: Bool { supported && (status == .idle || status == .working || status == .done) }
 
     public init(paneID: String, terminalID: String, kind: String, status: AgentStatus, cwd: String,
-                foregroundCwd: String? = nil, name: String? = nil, session: String? = nil) {
+                foregroundCwd: String? = nil, name: String? = nil, session: String? = nil, title: String? = nil) {
         self.paneID = paneID; self.terminalID = terminalID; self.kind = kind; self.status = status
-        self.cwd = cwd; self.foregroundCwd = foregroundCwd; self.name = name; self.session = session
+        self.cwd = cwd; self.foregroundCwd = foregroundCwd; self.name = name; self.session = session; self.title = title
     }
 
     init?(json: Any?) {
@@ -46,7 +48,8 @@ public struct HerdrAgent: Equatable, Sendable, Identifiable {
         self.init(paneID: pane, terminalID: terminal, kind: kind,
                   status: AgentStatus(rawValue: row["agent_status"] as? String ?? "") ?? .unknown,
                   cwd: cwd, foregroundCwd: row["foreground_cwd"] as? String,
-                  name: (row["name"] as? String).flatMap { $0.isEmpty ? nil : $0 }, session: session)
+                  name: (row["name"] as? String).flatMap { $0.isEmpty ? nil : $0 }, session: session,
+                  title: (row["terminal_title_stripped"] as? String).flatMap { $0.isEmpty ? nil : $0 })
     }
 }
 
@@ -268,22 +271,39 @@ public struct HerdrClient: Sendable {
         }
     }
 
-    /// An empty name clears it, so the folder shows again. herdr accepts `[a-z][a-z0-9_-]{0,31}`; spaces become dashes.
-    public func rename(_ agent: HerdrAgent, to name: String) async -> String? {
-        let name = name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            .replacingOccurrences(of: #"\s+"#, with: "-", options: .regularExpression)
-        let invalid = L("a name is lowercase letters, digits, - or _ (up to 32), starting with a letter",
-                        pl: "nazwa to małe litery bez polskich znaków, cyfry, - albo _ (do 32), na początku litera")
-        guard name.isEmpty || name.range(of: #"^[a-z][a-z0-9_-]{0,31}$"#, options: .regularExpression) != nil else { return invalid }
+    /// Applies names in two passes: every changed agent first drops its old name, so names can be swapped.
+    /// An empty name clears it. Returns a problem per pane that did not get its name.
+    public func rename(_ changes: [(agent: HerdrAgent, name: String)]) async -> [String: String] {
+        var problems = AgentName.problems(Dictionary(changes.map { ($0.agent.paneID, $0.name) }, uniquingKeysWith: { $1 }))
+        let valid = changes.filter { problems[$0.agent.paneID] == nil }
         do {
-            let output = try await run(["agent", "rename", agent.paneID] + (name.isEmpty ? ["--clear"] : [name]))
-            if output.exitCode == 0 { return nil }
-            let code = HerdrParse.errorCode(output.stderr)
-            if code == "invalid_agent_name" { return invalid }
-            return "herdr agent rename: \(code ?? L("code", pl: "kod") + " \(output.exitCode)")"
+            for change in valid where change.agent.name != nil {
+                let output = try await run(["agent", "rename", change.agent.paneID, "--clear"])
+                if output.exitCode != 0 { problems[change.agent.paneID] = renameProblem(output) }
+            }
+            for change in valid where !AgentName.normalize(change.name).isEmpty && problems[change.agent.paneID] == nil {
+                let output = try await run(["agent", "rename", change.agent.paneID, AgentName.normalize(change.name)])
+                if output.exitCode != 0 { problems[change.agent.paneID] = renameProblem(output) }
+            }
         } catch {
-            return error.localizedDescription
+            for change in valid where problems[change.agent.paneID] == nil { problems[change.agent.paneID] = error.localizedDescription }
         }
+        return problems
+    }
+
+    private func renameProblem(_ output: CommandOutput) -> String {
+        switch HerdrParse.errorCode(output.stderr) {
+        case "agent_name_taken": AgentName.takenMessage
+        case "invalid_agent_name": AgentName.invalidMessage
+        case "agent_not_found": SendResult.agentGone.message
+        case let code: "herdr agent rename: \(code ?? L("code", pl: "kod") + " \(output.exitCode)")"
+        }
+    }
+
+    /// Brings the agent's pane to the front in Herdr, so it can be told apart from its neighbours.
+    @discardableResult
+    public func focus(_ agent: HerdrAgent) async -> Bool {
+        (try? await run(["agent", "focus", agent.paneID]))?.exitCode == 0
     }
 
     private func run(_ arguments: [String]) async throws -> CommandOutput {
@@ -359,6 +379,57 @@ public enum AgentSender {
         guard trimmed.hasPrefix(prefix) else { return nil }
         let value = trimmed.dropFirst(prefix.count).trimmingCharacters(in: .whitespaces)
         return value.range(of: #"^w[0-9A-Za-z]+:p[0-9A-Za-z]+$"#, options: .regularExpression) != nil ? value : nil
+    }
+}
+
+/// herdr accepts `[a-z][a-z0-9_-]{0,31}`, unique per server. Typed names are lowercased, spaces become dashes.
+public enum AgentName {
+    static let invalidMessage = L("lowercase letters, digits, - or _ (up to 32), starting with a letter",
+                                  pl: "małe litery bez polskich znaków, cyfry, - albo _ (do 32), na początku litera")
+    static let takenMessage = L("another agent already has this name", pl: "inny agent ma już tę nazwę")
+
+    public static func normalize(_ raw: String) -> String {
+        raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            .replacingOccurrences(of: #"\s+"#, with: "-", options: .regularExpression)
+    }
+
+    public static func isValid(_ name: String) -> Bool {
+        name.range(of: #"^[a-z][a-z0-9_-]{0,31}$"#, options: .regularExpression) != nil
+    }
+
+    /// Drafts by pane: a malformed name, or one typed for two agents. Empty drafts clear and are fine.
+    public static func problems(_ drafts: [String: String]) -> [String: String] {
+        let names = drafts.mapValues(normalize)
+        let counts = Dictionary(names.values.filter { !$0.isEmpty }.map { ($0, 1) }, uniquingKeysWith: +)
+        return names.compactMapValues { name in
+            if name.isEmpty { return nil }
+            if !isValid(name) { return invalidMessage }
+            return counts[name, default: 0] > 1 ? L("the same name twice", pl: "ta sama nazwa dwa razy") : nil
+        }
+    }
+
+    /// Fills empty drafts with the folder name (`caissa`, `caissa-2`), avoiding every name already in use.
+    public static func suggest(_ agents: [HerdrAgent], drafts: [String: String]) -> [String: String] {
+        var result = drafts
+        var taken = Set(drafts.values.map(normalize).filter { !$0.isEmpty })
+        for agent in agents where normalize(result[agent.paneID] ?? "").isEmpty {
+            let base = slug(agent.folder, fallback: agent.kind)
+            var name = base, number = 2
+            while taken.contains(name) { name = "\(base)-\(number)"; number += 1 }
+            taken.insert(name)
+            result[agent.paneID] = name
+        }
+        return result
+    }
+
+    static func slug(_ text: String, fallback: String) -> String {
+        let folded = text.replacingOccurrences(of: "ł", with: "l").replacingOccurrences(of: "Ł", with: "L")
+            .folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).lowercased()
+        var slug = folded.replacingOccurrences(of: #"[^a-z0-9]+"#, with: "-", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        if slug.isEmpty { return fallback }
+        if slug.first?.isLetter != true { slug = fallback + "-" + slug }
+        return String(slug.prefix(28)).trimmingCharacters(in: CharacterSet(charactersIn: "-"))
     }
 }
 

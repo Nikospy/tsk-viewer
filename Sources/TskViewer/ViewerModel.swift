@@ -38,6 +38,7 @@ final class ViewerModel: ObservableObject {
     @Published var sendingToAgent = false
     var notify: (([TaskTransition]) -> Void)?
     var closePanel: (() -> Void)?
+    var openAgentNames: (() -> Void)?
 
     private var client: TskClient
     private var service: TaskActionService
@@ -210,15 +211,22 @@ final class ViewerModel: ObservableObject {
         return "\(agent.name ?? agent.folder) · \(agent.kind) · \(status)\(asked)"
     }
 
-    /// Renames the chosen agent in Herdr; an empty name brings back the folder.
-    func renameTarget(_ name: String) async {
-        guard let agent = targetAgent else { return }
-        if let problem = await herdr.rename(agent, to: name) {
-            dispatch = ("! \(problem)", false)
-            return
+    /// Saves every changed name at once; returns what went wrong per pane.
+    func renameAgents(_ drafts: [String: String]) async -> [String: String] {
+        let changes = agents.compactMap { agent -> (agent: HerdrAgent, name: String)? in
+            guard let draft = drafts[agent.paneID] else { return nil }
+            let name = AgentName.normalize(draft)
+            return name == (agent.name ?? "") ? nil : (agent, name)
         }
-        lastCommand = "herdr agent rename \(agent.paneID) …"
+        guard !changes.isEmpty else { return [:] }
+        let problems = await herdr.rename(changes)
+        lastCommand = "herdr agent rename … (\(changes.count))"
         await refreshAgents()
+        return problems
+    }
+
+    func focusAgent(_ agent: HerdrAgent) async {
+        await herdr.focus(agent)
     }
 
     /// Sends the checked tasks (or the open one) to the chosen agent for discussion; statuses stay as they are.

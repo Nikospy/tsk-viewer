@@ -171,16 +171,39 @@ func knownDialogsBlockTheSend(kind: String, name: String, dialog: String) throws
     #expect(!AgentSender.isMarker("Herdr: wkrótce"))
 }
 
-@Test func renameNormalizesClearsAndRefusesInvalidNames() async {
-    let agent = HerdrAgent(paneID: "w1:p2", terminalID: "t", kind: "claude", status: .idle, cwd: "/tmp")
+@Test func renameClearsChangedNamesFirstSoNamesCanBeSwapped() async {
+    let ok = CommandOutput(exitCode: 0, stdout: "")
+    let a = HerdrAgent(paneID: "w1:p1", terminalID: "t1", kind: "claude", status: .idle, cwd: "/tmp", name: "alfa")
+    let b = HerdrAgent(paneID: "w1:p2", terminalID: "t2", kind: "codex", status: .idle, cwd: "/tmp", name: "beta")
+    let c = HerdrAgent(paneID: "w1:p3", terminalID: "t3", kind: "grok", status: .idle, cwd: "/tmp")
     let script = HerdrScript([
-        (["agent", "rename", "w1:p2", "code-reviewer"], CommandOutput(exitCode: 0, stdout: "")),
-        (["agent", "rename", "w1:p2", "--clear"], CommandOutput(exitCode: 0, stdout: "")),
+        (["agent", "rename", "w1:p1", "--clear"], ok),
+        (["agent", "rename", "w1:p2", "--clear"], ok),
+        (["agent", "rename", "w1:p1", "beta"], ok),
+        (["agent", "rename", "w1:p2", "alfa"], ok),
+        (["agent", "rename", "w1:p3", "code-reviewer"], CommandOutput(exitCode: 1, stdout: "", stderr: #"{"error":{"code":"agent_name_taken"}}"#)),
     ])
     let client = HerdrClient(executablePath: "/bin/herdr", runner: script)
-    #expect(await client.rename(agent, to: " Code reviewer ") == nil)
-    #expect(await client.rename(agent, to: "") == nil)
-    #expect(await client.rename(agent, to: "--clear") != nil)
-    #expect(await client.rename(agent, to: "żółw") != nil)
-    #expect(await script.calls.count == 2)
+    let problems = await client.rename([(a, "beta"), (b, "alfa"), (c, " Code reviewer "), (c.renamed("w1:p4"), "żółw")])
+    #expect(Set(problems.keys) == ["w1:p3", "w1:p4"])
+    #expect(await script.calls.count == 5)
+}
+
+@Test func namesAreCheckedSuggestedAndKeptUnique() {
+    #expect(AgentName.problems(["a": "caissa", "b": "Caissa", "c": "", "d": "2fast"]).keys.sorted() == ["a", "b", "d"])
+    let agents = ["/x/caissa", "/x/caissa", "/x/Łódź Projekt", "/x/10x-app"].enumerated().map {
+        HerdrAgent(paneID: "w1:p\($0.offset)", terminalID: "t", kind: "claude", status: .idle, cwd: $0.element)
+    }
+    let names = AgentName.suggest(agents, drafts: ["w1:p0": "", "w1:p1": "", "w1:p9": "caissa"])
+    #expect(names["w1:p0"] == "caissa-2")
+    #expect(names["w1:p1"] == "caissa-3")
+    #expect(names["w1:p2"] == "lodz-projekt")
+    #expect(names["w1:p3"] == "claude-10x-app")
+    #expect(names.values.allSatisfy { AgentName.isValid($0) })
+}
+
+private extension HerdrAgent {
+    func renamed(_ pane: String) -> HerdrAgent {
+        HerdrAgent(paneID: pane, terminalID: terminalID, kind: kind, status: status, cwd: cwd, name: name)
+    }
 }

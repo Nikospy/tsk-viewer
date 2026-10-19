@@ -78,6 +78,7 @@ struct ViewerPanel: View {
             .disabled(model.loading || model.saving || model.loadingDetail)
             .help(refreshHelp)
             Menu {
+                Button(L("Agent names…", pl: "Nazwy agentów…")) { model.openAgentNames?() }
                 SettingsLink { Text(L("Settings…", pl: "Ustawienia…")) }
                 Divider()
                 Button(L("Quit TskViewer", pl: "Zakończ TskViewer")) { NSApp.terminate(nil) }
@@ -443,8 +444,6 @@ private struct ActionBar: View {
 /// Picks the Herdr agent that hears about decisions and gets tasks to discuss.
 private struct AgentStrip: View {
     @ObservedObject var model: ViewerModel
-    @State private var newName: String?
-    @FocusState private var naming: Bool
 
     private var split: (matching: [HerdrAgent], others: [HerdrAgent]) { model.agentSplit }
     private var count: Int { model.dispatchTasks.count }
@@ -456,8 +455,6 @@ private struct AgentStrip: View {
                 if model.agents.isEmpty {
                     Text(L("no herdr agents", pl: "brak agentów herdr")).foregroundStyle(Theme.faint)
                         .help(model.agentError ?? L("Herdr reports no agents.", pl: "Herdr nie zgłasza żadnego agenta."))
-                } else if newName != nil {
-                    nameField
                 } else {
                     picker
                 }
@@ -474,7 +471,7 @@ private struct AgentStrip: View {
                 }
             }
             .font(Theme.mono(12))
-            if let pane = model.senderPane, model.sender?.reachable != true, newName == nil {
+            if let pane = model.senderPane, model.sender?.reachable != true {
                 Text(model.sender == nil
                      ? L("the agent that asked (\(pane)) is gone — pick another", pl: "agenta, który pytał (\(pane)), już nie ma — wybierz innego")
                      : L("the agent that asked is not reachable now", pl: "agent, który pytał, jest teraz nieosiągalny"))
@@ -500,12 +497,7 @@ private struct AgentStrip: View {
                 Section(L("others", pl: "pozostałe")) { ForEach(split.others) { item($0) } }
             }
             Divider()
-            if let agent = model.targetAgent {
-                Button(L("Rename \(agent.name ?? agent.folder)…", pl: "Zmień nazwę \(agent.name ?? agent.folder)…")) {
-                    newName = agent.name ?? ""
-                    naming = true
-                }
-            }
+            Button(L("Agent names…", pl: "Nazwy agentów…")) { model.openAgentNames?() }
             Button(L("no agent", pl: "bez agenta")) { model.chooseAgent(nil) }
         } label: {
             HStack(spacing: 6) {
@@ -517,21 +509,6 @@ private struct AgentStrip: View {
         }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
         .help(L("The agent gets a message after agree, accept, a reply and the “discuss” button. Defaults to the agent that asked, else the one remembered for the project.", pl: "Agent dostaje wiadomość po zgodzie, akceptacji, odpowiedzi i przycisku „omów”. Domyślnie ten, który pytał, inaczej zapamiętany dla projektu."))
-    }
-
-    /// ⏎ renames in Herdr, an empty name clears it, esc cancels.
-    private var nameField: some View {
-        TextField(L("agent name", pl: "nazwa agenta"), text: Binding(get: { newName ?? "" }, set: { newName = $0 }))
-            .textFieldStyle(.plain)
-            .focused($naming)
-            .frame(maxWidth: 220)
-            .onSubmit {
-                let name = newName ?? ""
-                newName = nil
-                Task { await model.renameTarget(name) }
-            }
-            .onExitCommand { newName = nil }
-            .help(L("⏎ renames the agent in Herdr · empty clears the name · esc cancels", pl: "⏎ zmienia nazwę agenta w Herdr · puste usuwa nazwę · esc anuluje"))
     }
 
     private func item(_ agent: HerdrAgent) -> some View {
