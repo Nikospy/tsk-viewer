@@ -6,6 +6,10 @@ A native macOS 15+ menu bar app for the [tsk](https://gettsk.sh) task board, wit
 
 Decisions go back to the agent: after you agree, accept or reply, TskViewer pastes a one-line `tsk:` message into the [Herdr](https://herdr.dev) pane of the agent working in that project.
 
+![TskViewer: an agent asks, you answer from the menu bar, the reply lands in the agent's terminal](docs/demo.gif)
+
+22 s demo, also in [full quality MP4](docs/demo.mp4).
+
 SwiftPM with no external dependencies: `TskCore` holds the CLI clients and logic, `TskViewer` the SwiftUI/AppKit interface.
 
 ## Install as a Herdr plugin

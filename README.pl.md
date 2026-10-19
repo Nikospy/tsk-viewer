@@ -2,6 +2,10 @@
 
 [English](README.md)
 
+![TskViewer: agent pyta, odpowiadasz z paska menu, odpowiedź trafia do terminala agenta](docs/demo.gif)
+
+Film (22 s, po angielsku) w [pełnej jakości MP4](docs/demo.mp4).
+
 Natywna aplikacja macOS 15+ w pasku menu, bez ikony w Docku. Widok „Czeka na mnie” zbiera zadania `blocked` i `review` ze wszystkich projektów i biurka, grupując je według projektu. Ikona pokazuje ich liczbę (przy zerze sam symbol). Przełącznik „Pozostałe zadania” udostępnia inne żywe statusy tylko do odczytu. Szczegóły zawierają notatki z podstawowym markdownem i kroki tylko do odczytu.
 
 SwiftPM bez zewnętrznych zależności: `TskCore` zawiera klienta CLI i logikę, `TskViewer` — interfejs SwiftUI/AppKit.
