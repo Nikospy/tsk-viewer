@@ -244,9 +244,32 @@ final class ViewerModel: ObservableObject {
         }
     }
 
+    /// Runs only after a confirmed save. A message that does not arrive is never silent: the user
+    /// must know the agent learns about the decision only from the board.
     private func notifyAgent(_ action: TaskAction, task: TskTask) async {
-        guard let agent = targetAgent else { return }
-        report(await herdr.send(AgentMessage.decision(action, task: task), to: agent), to: agent, what: task.id)
+        guard let text = AgentMessage.decision(action, task: task) else { return }
+        guard let agent = targetAgent else {
+            let reason = if let pane = targetPane {
+                L("the chosen agent (\(pane)) is gone", pl: "wybranego agenta (\(pane)) już nie ma")
+            } else if agents.isEmpty {
+                agentError ?? L("Herdr reports no agents", pl: "Herdr nie zgłasza żadnego agenta")
+            } else {
+                L("no agent picked", pl: "nie wybrano agenta")
+            }
+            dispatch = (undelivered(task.id, reason: reason), false)
+            return
+        }
+        let result = await herdr.send(text, to: agent)
+        if result == .delivered {
+            report(result, to: agent, what: task.id)
+        } else {
+            dispatch = (undelivered(task.id, reason: "\(agent.name ?? agent.folder): \(result.message)"), false)
+        }
+    }
+
+    private func undelivered(_ id: String, reason: String) -> String {
+        "! " + L("\(id) saved, but not delivered to the agent: \(reason). The agent will see it on the board.",
+                 pl: "\(id): zapisano, ale nie doręczono agentowi: \(reason). Agent zobaczy to na tablicy.")
     }
 
     private func report(_ result: SendResult, to agent: HerdrAgent, what: String) {
@@ -313,8 +336,12 @@ final class ViewerModel: ObservableObject {
         let result = await service.perform(action, on: detail.task, reply: detail.reply)
         apply(result, id: id)
         if result.outcome == .completed {
-            let status = "tsk status \(id) \(action.targetStatus.rawValue)"
-            lastCommand = action.requiresReply ? "tsk edit \(id) --notes=… && \(status)" : status
+            if let target = action.targetStatus {
+                let status = "tsk status \(id) \(target.rawValue)"
+                lastCommand = action.requiresReply ? "tsk edit \(id) --notes=… && \(status)" : status
+            } else {
+                lastCommand = "tsk archive \(id)"
+            }
             await notifyAgent(action, task: detail.task)
         }
         saving = false

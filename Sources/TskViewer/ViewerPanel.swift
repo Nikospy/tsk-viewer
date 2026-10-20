@@ -295,10 +295,11 @@ private struct ActionBar: View {
     @ObservedObject var model: ViewerModel
     let detail: ViewerModel.Detail
     @FocusState private var replyFocused: Bool
-    @State private var confirmingAccept = false
+    /// The action waiting for its second click ("sure?"), if any.
+    @State private var confirming: TaskAction?
 
     private var available: [TaskAction] { TaskAction.available(for: detail.task.status) }
-    private var quickAction: TaskAction? { available.first { !$0.requiresReply } }
+    private var quickAction: TaskAction? { available.first { !$0.requiresReply && $0 != .close } }
     private var replyAction: TaskAction? { available.first { $0.requiresReply } }
     private var hasText: Bool { !detail.reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
@@ -317,6 +318,8 @@ private struct ActionBar: View {
                         .font(Theme.mono(12)).foregroundStyle(Theme.faint)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 6)
+                } else if replyAction == nil {
+                    plainActions
                 } else {
                     composer
                 }
@@ -360,7 +363,52 @@ private struct ActionBar: View {
                 .animation(.easeOut(duration: 0.15), value: replyFocused)
                 if let quickAction { quickButton(quickAction) }
             }
+            hintRow
+        }
+    }
+
+    /// Statuses with nothing to answer: open can go to the agents' queue, every live task can be closed.
+    private var plainActions: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Text(detail.task.status == .open
+                     ? L("inbox — no agent has it yet", pl: "skrzynka — żaden agent go jeszcze nie ma")
+                     : L("the agent changes this status; you can close the task", pl: "ten status zmienia agent; możesz zamknąć zadanie"))
+                    .font(Theme.mono(12)).foregroundStyle(Theme.faint)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                if let quickAction { quickButton(quickAction) }
+            }
+            hintRow
+        }
+    }
+
+    /// Close sits apart from the primary action, small and on the right, behind its own "sure?".
+    private var hintRow: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(hint).font(Theme.mono(11)).foregroundStyle(Theme.faint)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if available.contains(.close) && !model.saving {
+                Button { click(.close) } label: {
+                    Text(confirming == .close ? L("sure?", pl: "na pewno?") : TaskAction.close.title.lowercased())
+                        .foregroundStyle(confirming == .close ? Theme.ask : Theme.faint)
+                }
+                .buttonStyle(GhostButtonStyle(active: confirming == .close))
+                .help(L("Archives the task: it leaves the board, its status stays, no agent gets a message.", pl: "Archiwizuje zadanie: znika z tablicy, status zostaje, żaden agent nie dostaje wiadomości."))
+            }
+        }
+    }
+
+    /// Accept and Close need a second click within 3 s; the rest act at once.
+    private func click(_ action: TaskAction) {
+        if action.needsSecondClick && confirming != action {
+            confirming = action
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                if confirming == action { confirming = nil }
+            }
+        } else {
+            confirming = nil
+            model.choose(action)
         }
     }
 
@@ -368,19 +416,8 @@ private struct ActionBar: View {
         if model.saving {
             ProgressView().controlSize(.small).frame(width: 112, height: 38)
         } else {
-            Button {
-                if action == .accept && !confirmingAccept {
-                    confirmingAccept = true
-                    Task {
-                        try? await Task.sleep(for: .seconds(3))
-                        confirmingAccept = false
-                    }
-                } else {
-                    confirmingAccept = false
-                    model.choose(action)
-                }
-            } label: {
-                Text(confirmingAccept ? L("sure?", pl: "na pewno?") : action.title.lowercased())
+            Button { click(action) } label: {
+                Text(confirming == action ? L("sure?", pl: "na pewno?") : action.title.lowercased())
             }
             .buttonStyle(quickStyle(action))
             .keyboardShortcut(.return, modifiers: .command)
@@ -388,15 +425,21 @@ private struct ActionBar: View {
     }
 
     private func quickStyle(_ action: TaskAction) -> SolidButtonStyle {
-        if confirmingAccept { return SolidButtonStyle(fill: Theme.ask, hoverFill: Theme.ask, foreground: Theme.panel) }
+        if confirming == action { return SolidButtonStyle(fill: Theme.ask, hoverFill: Theme.ask, foreground: Theme.panel) }
         if action == .accept { return SolidButtonStyle(fill: Theme.ok, hoverFill: Theme.okHover, foreground: Theme.okText) }
         return SolidButtonStyle(fill: Theme.accent, hoverFill: Theme.accentHover, foreground: Theme.accentText)
     }
 
     private var hint: String {
-        if confirmingAccept { return L("click again to close the task", pl: "kliknij jeszcze raz, żeby zamknąć zadanie") }
-        let prefix = Language.current.replyPrefix
+        if confirming == .accept { return L("click again to close the task", pl: "kliknij jeszcze raz, żeby zamknąć zadanie") }
+        if confirming == .close { return L("click again — the task goes to the archive, no agent gets a message", pl: "kliknij jeszcze raz — zadanie trafi do archiwum, agent nie dostanie wiadomości") }
         let quick = "⌘⏎ " + (quickAction?.title.lowercased() ?? "")
+        if replyAction == nil {
+            // Open tasks have no agent yet; ready and started have no primary action at all.
+            return quickAction == nil ? L("nothing to decide here", pl: "tu nie ma nic do decyzji")
+                : quick + L(" · agents can pick it up; no message is sent", pl: " · agenci mogą go wziąć; nikt nie dostaje wiadomości")
+        }
+        let prefix = Language.current.replyPrefix
         if let agent = model.targetAgent, model.checked.isEmpty {
             let name = agent.name ?? agent.folder
             return hasText ? L("⏎ sends · the text goes to the notes as “\(prefix)” and to \(name)", pl: "⏎ wysyła · tekst trafi do notatek jako „\(prefix)” i do \(name)")
@@ -482,7 +525,7 @@ private struct AgentStrip: View {
                 Text(dispatch.text)
                     .font(Theme.mono(11))
                     .foregroundStyle(dispatch.ok ? Theme.ok : Theme.danger)
-                    .lineLimit(2)
+                    .lineLimit(3)
                     .textSelection(.enabled)
             }
         }
@@ -508,7 +551,7 @@ private struct AgentStrip: View {
             }
         }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-        .help(L("The agent gets a message after agree, accept, a reply and the “discuss” button. Defaults to the agent that asked, else the one remembered for the project.", pl: "Agent dostaje wiadomość po zgodzie, akceptacji, odpowiedzi i przycisku „omów”. Domyślnie ten, który pytał, inaczej zapamiętany dla projektu."))
+        .help(L("The agent gets a message after agree, accept, a reply and the “discuss” button; close and “to do” send nothing. Defaults to the agent that asked, else the one remembered for the project.", pl: "Agent dostaje wiadomość po zgodzie, akceptacji, odpowiedzi i przycisku „omów”; zamknij i „do zrobienia” nic nie wysyłają. Domyślnie ten, który pytał, inaczej zapamiętany dla projektu."))
     }
 
     private func item(_ agent: HerdrAgent) -> some View {

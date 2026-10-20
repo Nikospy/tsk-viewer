@@ -125,7 +125,12 @@ func knownDialogsBlockTheSend(kind: String, name: String, dialog: String) throws
         == "tsk: T4 „Odświeżyć caissa-state.md” — gracz: zaakceptowane, status done. Szczegóły: tsk list T4 --json")
     #expect(AgentMessage.decision(.sendBack, task: task, language: .en)
         == "tsk: T4 “Odświeżyć caissa-state.md” — user: changes requested in notes (last Reply: line), status ready. Details: tsk list T4 --json")
-    #expect(AgentMessage.decision(.reply, task: task, language: .pl).contains("(ostatnia linia Odp:)"))
+    #expect(AgentMessage.decision(.reply, task: task, language: .pl)?.contains("(ostatnia linia Odp:)") == true)
+    // Open tasks have no agent and closing tells nobody: these actions have no message at all.
+    for language in Language.allCases {
+        #expect(AgentMessage.decision(.toDo, task: task, language: language) == nil)
+        #expect(AgentMessage.decision(.close, task: task, language: language) == nil)
+    }
     for language in Language.allCases {
         let many = AgentMessage.discussion([task, TskTask(id: "T5", title: "Poprawki", status: .ready)], language: language)
         #expect(!many.contains("\n") && many.hasPrefix("tsk: ") && many.contains("tsk list T5 --json"))

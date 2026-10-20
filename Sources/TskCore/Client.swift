@@ -121,6 +121,14 @@ public struct TskClient: Sendable {
     public func editNotes(_ id: String, notes: String) async throws -> MutationResult {
         try await mutate(["edit", id, "--notes=\(notes)"])
     }
+    /// Keeps the status; the task leaves every live list. Exit 0 also when it already was archived.
+    public func archive(_ id: String) async throws -> MutationResult {
+        try await mutate(["archive", id])
+    }
+    /// A direct lookup returns archived tasks like live ones, so only the archived list tells them apart.
+    public func isArchived(_ id: String) async throws -> Bool {
+        try await read(["list", "--all", "--archived", "--json"]).contains { $0.id == id }
+    }
 
     private func read(_ arguments: [String]) async throws -> [TskTask] {
         let output = try await runner.run(executable: executablePath, arguments: arguments)

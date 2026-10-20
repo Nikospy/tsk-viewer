@@ -6,7 +6,7 @@
 
 Film (22 s, po angielsku) w [pełnej jakości MP4](docs/demo.mp4).
 
-Natywna aplikacja macOS 15+ w pasku menu, bez ikony w Docku. Widok „Czeka na mnie” zbiera zadania `blocked` i `review` ze wszystkich projektów i biurka, grupując je według projektu. Ikona pokazuje ich liczbę (przy zerze sam symbol). Przełącznik „Pozostałe zadania” udostępnia inne żywe statusy tylko do odczytu. Szczegóły zawierają notatki z podstawowym markdownem i kroki tylko do odczytu.
+Natywna aplikacja macOS 15+ w pasku menu, bez ikony w Docku. Widok „Czeka na mnie” zbiera zadania `blocked` i `review` ze wszystkich projektów i biurka, grupując je według projektu. Ikona pokazuje ich liczbę (przy zerze sam symbol). Przełącznik „Pozostałe zadania” pokazuje też inne żywe statusy; przy nich można tylko przenieść zadanie `open` do `ready` albo je zamknąć. Szczegóły zawierają notatki z podstawowym markdownem i kroki tylko do odczytu.
 
 Gdy agent podpisze notatki linią `Herdr: <panel>`, odpowiedź domyślnie trafia właśnie do niego, o ile jest osiągalny. Prawy klik na ikonie → „Nazwij agentów” pokazuje wszystkich agentów Herdr z tytułami terminali i pozwala nazwać ich naraz.
 
@@ -59,8 +59,12 @@ Odpytywanie działa w tle, domyślnie co 10 s (ustawienia: 2–3600 s). Ręczne 
 | `blocked` | Odpowiedz | dopisanie `Odp: …`, następnie → `ready` |
 | `review` | Akceptuj | → `done` |
 | `review` | Odeślij z uwagami | dopisanie `Odp: …`, następnie → `ready` |
+| `open` | Do zrobienia | → `ready` |
+| każdy żywy status | Zamknij | `tsk archive` (status zostaje) |
 
-Inne statusy nie mają akcji zmieniających stan. Aplikacja nigdy nie ustawia `started`, `open`, `blocked` ani `review`; nie zmienia kroków, nie archiwizuje ani nie usuwa zadań.
+Akceptuj i Zamknij pytają „na pewno?” i działają po drugim kliknięciu. Zamknij archiwizuje zadanie: znika ze wszystkich list, status zostaje, a wrócić może przez `tsk unarchive T#`. Do zrobienia i Zamknij nie wysyłają żadnej wiadomości agentowi. `done` i nieznane statusy nie mają akcji. Aplikacja nigdy nie ustawia `started`, `open`, `blocked` ani `review`; nie zmienia kroków ani nie usuwa zadań.
+
+Zamknij najpierw świeżo odczytuje zadanie i zatrzymuje się przy zmienionym statusie lub notatkach, jak pozostałe akcje. Po `archive` aplikacja potwierdza zamknięcie w `tsk list --all --archived` (bezpośredni odczyt nadal znajduje zarchiwizowane zadania). `tsk archive` jest idempotentne, więc niepotwierdzone zamknięcie można bezpiecznie powtórzyć.
 
 Odpowiedź nie może być pusta po obcięciu białych znaków. Jej nowe linie są zamieniane na spacje, a jedna linia `Odp: <tekst>` trafia na koniec notatek; dotychczasowa treść pozostaje bez zmian. CLI jest uruchamiane przez `Process` z tablicą argumentów, bez powłoki; notatki są przekazywane jako jeden argument `--notes=…`, także gdy tekst zaczyna się od `-`.
 
@@ -76,7 +80,7 @@ Bezpośrednio przed `edit` i przed zmianą statusu aplikacja świeżo odczytuje 
 
 ## Wiadomości do agentów
 
-Po decyzji aplikacja wkleja agentowi w Herdr jedną linię zaczynającą się od `tsk:`. Instrukcje agenta (CLAUDE.md, AGENTS.md) powinny mówić, co z nią zrobić:
+Po decyzji aplikacja wkleja agentowi w Herdr jedną linię zaczynającą się od `tsk:`. Gdy wiadomość nie dotrze (nie wybrano agenta, agenta już nie ma albo czeka na decyzję, na ekranie jest okno dialogowe…), panel to mówi: „zapisano, ale nie doręczono agentowi: <powód>. Agent zobaczy to na tablicy.” Instrukcje agenta (CLAUDE.md, AGENTS.md) powinny mówić, co z nią zrobić:
 
 | Wiadomość `tsk:` | Co robi agent |
 | --- | --- |

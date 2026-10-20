@@ -320,24 +320,29 @@ public struct HerdrClient: Sendable {
 /// One-line prompts: a newline would submit early, and the agent reads the details from tsk itself.
 public enum AgentMessage {
     /// Agents are told how to react to these in their instructions, so the wording is a contract per language.
-    public static func decision(_ action: TaskAction, task: TskTask, language: Language = .current) -> String {
+    /// Nil for actions that tell no agent (see `TaskAction.notifiesAgent`).
+    public static func decision(_ action: TaskAction, task: TskTask, language: Language = .current) -> String? {
         let prefix = language.replyPrefix
         switch language {
         case .pl:
-            let verdict = switch action {
+            let verdict: String? = switch action {
             case .agree: "zgoda, status ready"
             case .accept: "zaakceptowane, status done"
             case .reply: "odpowiedź dopisana do notatek (ostatnia linia \(prefix)), status ready"
             case .sendBack: "uwagi do poprawki w notatkach (ostatnia linia \(prefix)), status ready"
+            case .toDo, .close: nil
             }
+            guard let verdict else { return nil }
             return "tsk: \(task.id) „\(oneLine(task.title))” — gracz: \(verdict). Szczegóły: tsk list \(task.id) --json"
         case .en:
-            let verdict = switch action {
+            let verdict: String? = switch action {
             case .agree: "approved, status ready"
             case .accept: "accepted, status done"
             case .reply: "reply added to notes (last \(prefix) line), status ready"
             case .sendBack: "changes requested in notes (last \(prefix) line), status ready"
+            case .toDo, .close: nil
             }
+            guard let verdict else { return nil }
             return "tsk: \(task.id) “\(oneLine(task.title))” — user: \(verdict). Details: tsk list \(task.id) --json"
         }
     }
