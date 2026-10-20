@@ -299,7 +299,7 @@ private struct ActionBar: View {
     @State private var confirming: TaskAction?
 
     private var available: [TaskAction] { TaskAction.available(for: detail.task.status) }
-    private var quickAction: TaskAction? { available.first { !$0.requiresReply && $0 != .close } }
+    private var quickAction: TaskAction? { available.first { !$0.requiresReply && $0 != .archive } }
     private var replyAction: TaskAction? { available.first { $0.requiresReply } }
     private var hasText: Bool { !detail.reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
@@ -367,13 +367,13 @@ private struct ActionBar: View {
         }
     }
 
-    /// Statuses with nothing to answer: open can go to the agents' queue, every live task can be closed.
+    /// Statuses with nothing to answer: open can go to the agents' queue, every live task can be archived.
     private var plainActions: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 10) {
                 Text(detail.task.status == .open
                      ? L("inbox — no agent has it yet", pl: "skrzynka — żaden agent go jeszcze nie ma")
-                     : L("the agent changes this status; you can close the task", pl: "ten status zmienia agent; możesz zamknąć zadanie"))
+                     : L("the agent changes this status; you can archive the task", pl: "ten status zmienia agent; możesz zarchiwizować zadanie"))
                     .font(Theme.mono(12)).foregroundStyle(Theme.faint)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 if let quickAction { quickButton(quickAction) }
@@ -382,23 +382,24 @@ private struct ActionBar: View {
         }
     }
 
-    /// Close sits apart from the primary action, small and on the right, behind its own "sure?".
+    /// Archive sits apart from the primary action, small and on the right, behind its own "sure?".
     private var hintRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Text(hint).font(Theme.mono(11)).foregroundStyle(Theme.faint)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            if available.contains(.close) && !model.saving {
-                Button { click(.close) } label: {
-                    Text(confirming == .close ? L("sure?", pl: "na pewno?") : TaskAction.close.title.lowercased())
-                        .foregroundStyle(confirming == .close ? Theme.ask : Theme.faint)
+            if available.contains(.archive) && !model.saving {
+                Button { click(.archive) } label: {
+                    Label(confirming == .archive ? L("sure?", pl: "na pewno?") : TaskAction.archive.title.lowercased(),
+                          systemImage: "archivebox")
                 }
-                .buttonStyle(GhostButtonStyle(active: confirming == .close))
+                .buttonStyle(GhostButtonStyle(active: confirming == .archive,
+                                              accent: confirming == .archive ? Theme.ask : Theme.accent))
                 .help(L("Archives the task: it leaves the board, its status stays, no agent gets a message.", pl: "Archiwizuje zadanie: znika z tablicy, status zostaje, żaden agent nie dostaje wiadomości."))
             }
         }
     }
 
-    /// Accept and Close need a second click within 3 s; the rest act at once.
+    /// Accept and Archive need a second click within 3 s; the rest act at once.
     private func click(_ action: TaskAction) {
         if action.needsSecondClick && confirming != action {
             confirming = action
@@ -431,8 +432,8 @@ private struct ActionBar: View {
     }
 
     private var hint: String {
-        if confirming == .accept { return L("click again to close the task", pl: "kliknij jeszcze raz, żeby zamknąć zadanie") }
-        if confirming == .close { return L("click again — the task goes to the archive, no agent gets a message", pl: "kliknij jeszcze raz — zadanie trafi do archiwum, agent nie dostanie wiadomości") }
+        if confirming == .accept { return L("click again to mark it done", pl: "kliknij jeszcze raz, żeby oznaczyć jako zrobione") }
+        if confirming == .archive { return L("click again — the task goes to the archive, no agent gets a message", pl: "kliknij jeszcze raz — zadanie trafi do archiwum, agent nie dostanie wiadomości") }
         let quick = "⌘⏎ " + (quickAction?.title.lowercased() ?? "")
         if replyAction == nil {
             // Open tasks have no agent yet; ready and started have no primary action at all.
@@ -551,7 +552,7 @@ private struct AgentStrip: View {
             }
         }
         .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-        .help(L("The agent gets a message after agree, accept, a reply and the “discuss” button; close and “to do” send nothing. Defaults to the agent that asked, else the one remembered for the project.", pl: "Agent dostaje wiadomość po zgodzie, akceptacji, odpowiedzi i przycisku „omów”; zamknij i „do zrobienia” nic nie wysyłają. Domyślnie ten, który pytał, inaczej zapamiętany dla projektu."))
+        .help(L("The agent gets a message after agree, accept, a reply and the “discuss” button; archive and “to do” send nothing. Defaults to the agent that asked, else the one remembered for the project.", pl: "Agent dostaje wiadomość po zgodzie, akceptacji, odpowiedzi i przycisku „omów”; archiwizuj i „do zrobienia” nic nie wysyłają. Domyślnie ten, który pytał, inaczej zapamiętany dla projektu."))
     }
 
     private func item(_ agent: HerdrAgent) -> some View {

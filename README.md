@@ -2,7 +2,7 @@
 
 [Polski](README.pl.md)
 
-A native macOS 15+ menu bar app for the [tsk](https://gettsk.sh) task board, with no Dock icon. The “waiting for me” view collects `blocked` and `review` tasks from every project and the desk, grouped by project. The icon shows their count (just the symbol at zero). The “all” toggle shows the other live statuses too; there you can only move an `open` task to `ready` or close a task. Details show the notes with basic markdown and the steps, read-only.
+A native macOS 15+ menu bar app for the [tsk](https://gettsk.sh) task board, with no Dock icon. The “waiting for me” view collects `blocked` and `review` tasks from every project and the desk, grouped by project. The icon shows their count (just the symbol at zero). The “all” toggle shows the other live statuses too; there you can only move an `open` task to `ready` or archive a task. Details show the notes with basic markdown and the steps, read-only.
 
 Decisions go back to the agent: after you agree, accept or reply, TskViewer pastes a one-line `tsk:` message into the [Herdr](https://herdr.dev) pane of the agent working in that project.
 
@@ -62,11 +62,11 @@ Polling runs in the background, every 10 s by default (2–3600 s). Manual refre
 | `review` | Accept | → `done` |
 | `review` | Send back with notes | append `Reply: …`, then → `ready` |
 | `open` | To do | → `ready` |
-| any live status | Close | `tsk archive` (status kept) |
+| any live status | Archive | `tsk archive` (status kept) |
 
-Accept and Close ask “sure?” and act on the second click. Close archives the task: it leaves every list, its status stays, and it can come back with `tsk unarchive T#`. To do and Close send no message to any agent. `done` and unknown statuses have no actions. The app never sets `started`, `open`, `blocked` or `review`; it does not change steps or delete tasks.
+Accept and Archive ask “sure?” and act on the second click. Archive takes the task off the board: it leaves every list, its status stays, and it can come back with `tsk unarchive T#`. To do and Archive send no message to any agent. `done` and unknown statuses have no actions. The app never sets `started`, `open`, `blocked` or `review`; it does not change steps or delete tasks.
 
-Close reads the task fresh first and stops on a changed status or notes, like the other actions. After `archive` the app confirms the close in `tsk list --all --archived` (a direct lookup still finds archived tasks). `tsk archive` is idempotent, so an unconfirmed close can safely be repeated.
+Archive reads the task fresh first and stops on a changed status or notes, like the other actions. After `archive` the app confirms the archive in `tsk list --all --archived` (a direct lookup still finds archived tasks). `tsk archive` is idempotent, so an unconfirmed archive can safely be repeated.
 
 A reply cannot be empty after trimming whitespace. Its newlines become spaces, and one `Reply: <text>` line goes at the end of the notes; the existing text stays untouched. The CLI runs through `Process` with an argument array, never a shell; notes go as a single `--notes=…` argument, even when the text starts with `-`.
 

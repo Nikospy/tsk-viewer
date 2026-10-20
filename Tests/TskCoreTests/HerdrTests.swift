@@ -129,7 +129,7 @@ func knownDialogsBlockTheSend(kind: String, name: String, dialog: String) throws
     // Open tasks have no agent and closing tells nobody: these actions have no message at all.
     for language in Language.allCases {
         #expect(AgentMessage.decision(.toDo, task: task, language: language) == nil)
-        #expect(AgentMessage.decision(.close, task: task, language: language) == nil)
+        #expect(AgentMessage.decision(.archive, task: task, language: language) == nil)
     }
     for language in Language.allCases {
         let many = AgentMessage.discussion([task, TskTask(id: "T5", title: "Poprawki", status: .ready)], language: language)

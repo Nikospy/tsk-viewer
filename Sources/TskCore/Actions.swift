@@ -1,7 +1,7 @@
 import Foundation
 
 public enum TaskAction: String, CaseIterable, Sendable, Identifiable {
-    case agree, reply, accept, sendBack, toDo, close
+    case agree, reply, accept, sendBack, toDo, archive
     public var id: Self { self }
     public var title: String {
         switch self {
@@ -10,28 +10,28 @@ public enum TaskAction: String, CaseIterable, Sendable, Identifiable {
         case .accept: L("Accept", pl: "Akceptuj")
         case .sendBack: L("Send back with notes", pl: "Odeślij z uwagami")
         case .toDo: L("To do", pl: "Do zrobienia")
-        case .close: L("Close", pl: "Zamknij")
+        case .archive: L("Archive", pl: "Archiwizuj")
         }
     }
     public var requiresReply: Bool { self == .reply || self == .sendBack }
-    /// Close archives the task and keeps its status, so it has no target status.
+    /// Archive keeps the status, so it has no target status.
     public var targetStatus: WritableStatus? {
         switch self {
         case .accept: .done
-        case .close: nil
+        case .archive: nil
         default: .ready
         }
     }
     /// Answers to an agent's question or hand-over; an open task has no agent and closing tells nobody.
-    public var notifiesAgent: Bool { self != .toDo && self != .close }
+    public var notifiesAgent: Bool { self != .toDo && self != .archive }
     /// Actions that end the task's life on the board ask "sure?" first.
-    public var needsSecondClick: Bool { self == .accept || self == .close }
+    public var needsSecondClick: Bool { self == .accept || self == .archive }
     public static func available(for status: TskStatus) -> [TaskAction] {
         switch status {
-        case .blocked: [.agree, .reply, .close]
-        case .review: [.accept, .sendBack, .close]
-        case .open: [.toDo, .close]
-        case .ready, .started: [.close]
+        case .blocked: [.agree, .reply, .archive]
+        case .review: [.accept, .sendBack, .archive]
+        case .open: [.toDo, .archive]
+        case .ready, .started: [.archive]
         default: []
         }
     }
@@ -167,8 +167,8 @@ public actor TaskActionService {
     }
 
     /// Archiving keeps status and notes, so it cannot overwrite an agent's change made after the fresh read.
-    /// A direct lookup still finds archived tasks; only the archived list proves the close.
-    /// `tsk archive` is idempotent, so an unconfirmed close is safe to repeat and needs no inspection.
+    /// A direct lookup still finds archived tasks; only the archived list proves the archive.
+    /// `tsk archive` is idempotent, so an unconfirmed archive is safe to repeat and needs no inspection.
     private func archive(expected: TskTask) async -> ActionResult {
         var attempted = false
         do {
@@ -177,22 +177,22 @@ public actor TaskActionService {
             switch mutation {
             case .acknowledged, .indeterminate:
                 if try await client.isArchived(expected.id) {
-                    return result(.completed, task: expected, message: L("Closed.", pl: "Zamknięto."), mutation: mutation)
+                    return result(.completed, task: expected, message: L("Archived.", pl: "Zarchiwizowano."), mutation: mutation)
                 }
                 // Nothing was archived, so the fresh state needs a plain confirmation, not an inspection.
                 let confirmed = try await current(expected.id)
                 guard matches(confirmed, expected) else { return conflict(confirmed) }
-                return result(.notWritten, task: confirmed, message: mutation.message ?? notClosed, mutation: mutation)
+                return result(.notWritten, task: confirmed, message: mutation.message ?? notArchived, mutation: mutation)
             default:
-                return result(.notWritten, task: expected, message: mutation.message ?? notClosed, mutation: mutation)
+                return result(.notWritten, task: expected, message: mutation.message ?? notArchived, mutation: mutation)
             }
         } catch {
             return result(.failed, task: expected, message: attempted
-                ? L("Could not confirm the close. Refresh the list; closing again is safe.", pl: "Nie udało się potwierdzić zamknięcia. Odśwież listę; ponowne zamknięcie jest bezpieczne.") + " \(error.localizedDescription)"
+                ? L("Could not confirm the archive. Refresh the list; archiving again is safe.", pl: "Nie udało się potwierdzić archiwizacji. Odśwież listę; ponowna archiwizacja jest bezpieczna.") + " \(error.localizedDescription)"
                 : error.localizedDescription)
         }
     }
-    private var notClosed: String { L("The task was not closed.", pl: "Zadanie nie zostało zamknięte.") }
+    private var notArchived: String { L("The task was not archived.", pl: "Zadanie nie zostało zarchiwizowane.") }
 
     private func unchanged(_ task: TskTask, retry: StatusRetry?, mutation: MutationResult) -> ActionResult {
         result(retry == nil ? .notWritten : .replySavedStatusUnchanged, task: task, retry: retry,

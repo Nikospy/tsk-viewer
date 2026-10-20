@@ -330,7 +330,7 @@ public enum AgentMessage {
             case .accept: "zaakceptowane, status done"
             case .reply: "odpowiedź dopisana do notatek (ostatnia linia \(prefix)), status ready"
             case .sendBack: "uwagi do poprawki w notatkach (ostatnia linia \(prefix)), status ready"
-            case .toDo, .close: nil
+            case .toDo, .archive: nil
             }
             guard let verdict else { return nil }
             return "tsk: \(task.id) „\(oneLine(task.title))” — gracz: \(verdict). Szczegóły: tsk list \(task.id) --json"
@@ -340,7 +340,7 @@ public enum AgentMessage {
             case .accept: "accepted, status done"
             case .reply: "reply added to notes (last \(prefix) line), status ready"
             case .sendBack: "changes requested in notes (last \(prefix) line), status ready"
-            case .toDo, .close: nil
+            case .toDo, .archive: nil
             }
             guard let verdict else { return nil }
             return "tsk: \(task.id) “\(oneLine(task.title))” — user: \(verdict). Details: tsk list \(task.id) --json"

@@ -373,7 +373,7 @@ final class ViewerModel: ObservableObject {
         details[id] = detail
     }
 
-    func closeEditor() {
+    func archiveEditor() {
         guard let id = selectedID, !saving else { return }
         details[id]?.action = nil
         // Never discard text merely because the editor is closed.

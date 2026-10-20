@@ -120,23 +120,29 @@ struct SolidButtonStyle: ButtonStyle {
 
 struct GhostButtonStyle: ButtonStyle {
     var active = false
+    /// When set, hover and active paint the button in this color instead of plain text.
+    var accent: Color? = nil
 
     func makeBody(configuration: Configuration) -> some View {
-        Ghost(configuration: configuration, active: active)
+        Ghost(configuration: configuration, active: active, accent: accent)
     }
 
     private struct Ghost: View {
         let configuration: Configuration
         let active: Bool
+        let accent: Color?
         @State private var hovered = false
 
         var body: some View {
+            let lit = active || hovered
             configuration.label
                 .font(Theme.mono(12))
-                .foregroundStyle(active || hovered ? Theme.text : Theme.faint)
+                .foregroundStyle(lit ? accent ?? Theme.text : Theme.faint)
                 .padding(.horizontal, 9).padding(.vertical, 5)
                 .background(RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(active || hovered ? Theme.hover : .clear))
+                    .fill(lit ? accent?.opacity(0.14) ?? Theme.hover : .clear))
+                .overlay(RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .strokeBorder(lit ? accent?.opacity(0.5) ?? .clear : .clear, lineWidth: 1))
                 .opacity(configuration.isPressed ? 0.7 : 1)
                 .contentShape(Rectangle())
                 .onHover { hovered = $0 }

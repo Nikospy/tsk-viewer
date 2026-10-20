@@ -35,20 +35,20 @@ private func service(_ script: Script) -> TaskActionService {
 }
 
 @Test func actionMatrix() {
-    #expect(TaskAction.available(for: .blocked) == [.agree, .reply, .close])
-    #expect(TaskAction.available(for: .review) == [.accept, .sendBack, .close])
-    #expect(TaskAction.available(for: .open) == [.toDo, .close])
-    #expect(TaskAction.available(for: .ready) == [.close])
-    #expect(TaskAction.available(for: .started) == [.close])
+    #expect(TaskAction.available(for: .blocked) == [.agree, .reply, .archive])
+    #expect(TaskAction.available(for: .review) == [.accept, .sendBack, .archive])
+    #expect(TaskAction.available(for: .open) == [.toDo, .archive])
+    #expect(TaskAction.available(for: .ready) == [.archive])
+    #expect(TaskAction.available(for: .started) == [.archive])
     for status in [TskStatus.done, .unknown("future")] {
         #expect(TaskAction.available(for: status).isEmpty)
     }
     #expect(TaskAction.accept.targetStatus == .done)
     #expect(TaskAction.sendBack.targetStatus == .ready)
     #expect(TaskAction.toDo.targetStatus == .ready)
-    #expect(TaskAction.close.targetStatus == nil)
+    #expect(TaskAction.archive.targetStatus == nil)
     #expect(TaskAction.allCases.filter(\.notifiesAgent) == [.agree, .reply, .accept, .sendBack])
-    #expect(TaskAction.allCases.filter(\.needsSecondClick) == [.accept, .close])
+    #expect(TaskAction.allCases.filter(\.needsSecondClick) == [.accept, .archive])
 }
 
 @Test func repliesPreserveOriginalBytes() throws {
@@ -274,9 +274,9 @@ private let archive = ["archive", "T12"]
 private let archived = ["list", "--all", "--archived", "--json"]
 
 @Test(arguments: [TskStatus.open, .ready, .started, .blocked, .review])
-func closeArchivesAndConfirmsInArchivedList(status: TskStatus) async {
+func archiveArchivesAndConfirmsInArchivedList(status: TskStatus) async {
     let script = Script([Exchange(fetch, read(task(status))), Exchange(archive, ok), Exchange(archived, read(task(status)))])
-    let result = await service(script).perform(.close, on: task(status))
+    let result = await service(script).perform(.archive, on: task(status))
     #expect(result.outcome == .completed)
     #expect(result.task == task(status))
     #expect(await script.calls.allSatisfy { $0.first != "status" && $0.first != "edit" })
@@ -284,52 +284,52 @@ func closeArchivesAndConfirmsInArchivedList(status: TskStatus) async {
 }
 
 @Test(arguments: [task(notes: "zmienione"), task(.review)])
-func closeOfChangedTaskNeverArchives(fresh: TskTask) async {
+func archiveOfChangedTaskNeverArchives(fresh: TskTask) async {
     let script = Script([Exchange(fetch, read(fresh))])
-    let result = await service(script).perform(.close, on: task())
+    let result = await service(script).perform(.archive, on: task())
     #expect(result.outcome == .needsConfirmation)
     #expect(result.task == fresh)
     #expect(await script.calls.count == 1)
 }
 
-@Test func closeRefusalIsReported() async {
+@Test func archiveRefusalIsReported() async {
     let refusal = CommandOutput(exitCode: 1, stderr: "tsk archive: unknown-task: T12 is not on the board")
     let script = Script([Exchange(fetch, read(task())), Exchange(archive, refusal)])
-    let result = await service(script).perform(.close, on: task())
+    let result = await service(script).perform(.archive, on: task())
     #expect(result.outcome == .notWritten)
     #expect(result.mutation == .refused(code: "unknown-task", message: refusal.stderr))
     #expect(result.message == refusal.stderr)
     #expect(await script.exhausted())
 }
 
-@Test func closeAcknowledgedButNotArchivedIsNotCompleted() async {
+@Test func archiveAcknowledgedButNotArchivedIsNotCompleted() async {
     let script = Script([Exchange(fetch, read(task())), Exchange(archive, ok), Exchange(archived, read(nil)), Exchange(fetch, read(task()))])
-    let result = await service(script).perform(.close, on: task())
+    let result = await service(script).perform(.archive, on: task())
     #expect(result.outcome == .notWritten)
-    #expect(result.message == "The task was not closed.")
+    #expect(result.message == "The task was not archived.")
     #expect(await script.exhausted())
 }
 
-@Test func closeUnknownOutcomeIsVerifiedNotRepeated() async {
+@Test func archiveUnknownOutcomeIsVerifiedNotRepeated() async {
     let script = Script([Exchange(fetch, read(task())), Exchange(archive, CommandOutput(exitCode: 3)), Exchange(archived, read(task()))])
-    #expect(await service(script).perform(.close, on: task()).outcome == .completed)
+    #expect(await service(script).perform(.archive, on: task()).outcome == .completed)
     #expect(await script.calls.filter { $0.first == "archive" }.count == 1)
     #expect(await script.exhausted())
 }
 
-@Test func closeConcurrentChangeAfterNoOpAsksAgain() async {
+@Test func archiveConcurrentChangeAfterNoOpAsksAgain() async {
     let changed = task(.review)
     let script = Script([Exchange(fetch, read(task())), Exchange(archive, ok), Exchange(archived, read(nil)), Exchange(fetch, read(changed))])
-    let result = await service(script).perform(.close, on: task())
+    let result = await service(script).perform(.archive, on: task())
     #expect(result.outcome == .needsConfirmation)
     #expect(result.task == changed)
     // Nothing was archived, so the viewer asks for a plain confirmation rather than an inspection.
     #expect(result.mutation == nil)
 }
 
-@Test func closeOfDoneTaskIsRefusedLocally() async {
+@Test func archiveOfDoneTaskIsRefusedLocally() async {
     let script = Script([])
-    let result = await service(script).perform(.close, on: task(.done))
+    let result = await service(script).perform(.archive, on: task(.done))
     #expect(result.outcome == .failed)
     #expect(await script.calls.isEmpty)
 }
