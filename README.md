@@ -53,6 +53,10 @@ The language setting (system, English, polski) switches the interface at once. I
 
 Polling runs in the background, every 10 s by default (2–3600 s). Manual refresh: the arrow button or Cmd+R. Esc closes the panel; Cmd+Return sends the reply from the open editor. The ellipsis menu holds “Quit TskViewer”.
 
+## Dates
+
+Each row shows when the task was added; the detail adds when it last changed. `tsk list --json` has no dates, so only these are read from the board file (`$TSK_STATE_DIR/tsk.json`, else `~/.tsk/tsk.json`), never written. If the file is missing or its shape changes, the dates disappear and everything else keeps working.
+
 ## Decisions and replies
 
 | Status | Button | Effect |
@@ -98,7 +102,7 @@ For this loop to work, agents ask their questions as `blocked` tasks (title = th
 
 ## Notifications
 
-The app asks the system for notification permission. Refusing does not block anything. The first successful read after launch is silent; later ones report transitions to `blocked` or `review`, including a new task appearing in such a status. No change, no duplicate notification, and a read error does not reset the comparison. A notification holds the task number, title, project and status; clicking it opens the panel on that task.
+The app asks the system for notification permission. Refusing does not block anything. The first successful read after launch is silent; later ones report transitions to `blocked` or `review`, including a new task appearing in such a status. No change, no duplicate notification, and a read error does not reset the comparison. A notification holds the task number, title, project and status, plus a pixel-art mascot in the NotchDrop style: an amber blob with an hourglass for `blocked`, a laughing green blob with a tick for `review`. Clicking it opens the panel on that task.
 
 ## Verification scope
 

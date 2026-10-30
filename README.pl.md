@@ -51,6 +51,10 @@ Ustawienie „język” (systemowy, English, polski) zmienia interfejs od razu. 
 
 Odpytywanie działa w tle, domyślnie co 10 s (ustawienia: 2–3600 s). Ręczne odświeżanie: przycisk strzałki lub Cmd+R. Esc zamyka panel; Cmd+Return wysyła odpowiedź z otwartego edytora. Menu wielokropka zawiera „Zakończ TskViewer”.
 
+## Daty
+
+Każdy wiersz pokazuje, kiedy zadanie dodano; szczegóły dokładają ostatnią zmianę. `tsk list --json` nie podaje dat, więc tylko one są czytane z pliku tablicy (`$TSK_STATE_DIR/tsk.json`, inaczej `~/.tsk/tsk.json`), nigdy zapisywane. Gdy pliku nie ma albo zmieni się jego układ, daty znikają, a reszta działa dalej.
+
 ## Decyzje i odpowiedzi
 
 | Status | Przycisk | Skutek |
@@ -94,7 +98,7 @@ Po decyzji aplikacja wkleja agentowi w Herdr jedną linię zaczynającą się od
 
 ## Powiadomienia
 
-Aplikacja prosi system o zgodę na powiadomienia. Odmowa nie blokuje pracy. Pierwszy udany odczyt po starcie jest cichy; kolejne zgłaszają przejścia do `blocked` lub `review`, także pojawienie się nowego zadania w takim statusie. Brak zmiany nie powiela powiadomień, a błąd odczytu nie zeruje porównania. Powiadomienie zawiera numer zadania, tytuł, projekt i status; kliknięcie otwiera panel z tym zadaniem.
+Aplikacja prosi system o zgodę na powiadomienia. Odmowa nie blokuje pracy. Pierwszy udany odczyt po starcie jest cichy; kolejne zgłaszają przejścia do `blocked` lub `review`, także pojawienie się nowego zadania w takim statusie. Brak zmiany nie powiela powiadomień, a błąd odczytu nie zeruje porównania. Powiadomienie zawiera numer zadania, tytuł, projekt i status oraz pikselowego stworka w stylu NotchDrop: bursztynowego z klepsydrą przy `blocked`, roześmianego zielonego z ptaszkiem przy `review`. Kliknięcie otwiera panel z tym zadaniem.
 
 ## Integracja z agentami poza repo
 

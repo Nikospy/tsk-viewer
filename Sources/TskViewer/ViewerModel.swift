@@ -14,6 +14,8 @@ final class ViewerModel: ObservableObject {
     }
 
     @Published var tasks: [TskTask] = []
+    /// When each task was added and last changed, keyed by task id; empty when the board file is unreadable.
+    @Published var times: [String: TaskTimes] = [:]
     @Published var selectedID: String?
     @Published var details: [String: Detail] = [:]
     @Published var includeOthers = false
@@ -110,6 +112,7 @@ final class ViewerModel: ObservableObject {
             let fresh = try await client.listAll()
             guard !Task.isCancelled else { return }
             tasks = fresh
+            times = await Task.detached { BoardTimes.read() }.value
             error = nil
             lastRefresh = Date()
             notify?(detector.consume(.success(fresh)))

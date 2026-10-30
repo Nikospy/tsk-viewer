@@ -138,6 +138,9 @@ final class ViewerDelegate: NSObject, NSApplicationDelegate, UNUserNotificationC
             content.body = "\(event.project) · \(event.status.displayName) (\(event.status.rawValue))"
             content.userInfo = ["taskID": event.task.id]
             content.sound = .default
+            if let sprite = NotificationSprite.attachment(for: event.status) {
+                content.attachments = [sprite]
+            }
             let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
             center.add(request) { _ in }
         }

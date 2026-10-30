@@ -108,7 +108,7 @@ struct ViewerPanel: View {
                         .padding(.horizontal, 10)
                         .padding(.top, group.id == model.groups.first?.id ? 2 : 14).padding(.bottom, 6)
                         ForEach(group.tasks) { task in
-                            TaskRow(task: task, selected: model.selectedID == task.id,
+                            TaskRow(task: task, times: model.times[task.id], selected: model.selectedID == task.id,
                                     checked: model.checked.contains(task.id)) { model.toggleCheck(task.id) }
                                 .onTapGesture {
                                     if NSEvent.modifierFlags.contains(.command) {
@@ -169,6 +169,7 @@ struct ViewerPanel: View {
 
 private struct TaskRow: View {
     let task: TskTask
+    let times: TaskTimes?
     let selected: Bool
     let checked: Bool
     let onCheck: () -> Void
@@ -197,8 +198,11 @@ private struct TaskRow: View {
                     .font(Theme.mono(13, .medium))
                     .lineLimit(1).truncationMode(.tail)
                 (Text("\(task.id) · ").foregroundColor(Theme.faint)
-                    + Text(task.status.terminalLabel).foregroundColor(task.status.tint))
+                    + Text(task.status.terminalLabel).foregroundColor(task.status.tint)
+                    + Text(times.map { " · " + BoardTimes.label($0.created) } ?? "").foregroundColor(Theme.faint))
                     .font(Theme.mono(11.5))
+                    .help(times.map { L("added ", pl: "dodane ") + BoardTimes.label($0.created)
+                        + L(" · changed ", pl: " · zmienione ") + BoardTimes.label($0.updated) } ?? "")
             }
             Spacer(minLength: 0)
         }
@@ -240,6 +244,13 @@ private struct TaskDetail: View {
                     (Text("\(detail.task.id) · \(detail.task.projectName) · ").foregroundColor(Theme.faint)
                         + Text(detail.task.status.rawValue).foregroundColor(detail.task.status.tint))
                         .font(Theme.mono(11.5))
+                    if let times = model.times[detail.task.id] {
+                        Text(L("added ", pl: "dodane ") + BoardTimes.label(times.created)
+                            + L(" · changed ", pl: " · zmienione ") + BoardTimes.label(times.updated))
+                            .font(Theme.mono(11.5))
+                            .foregroundStyle(Theme.faint)
+                            .padding(.top, 4)
+                    }
                     Text(detail.task.title)
                         .font(Theme.mono(17, .bold))
                         .lineSpacing(3)

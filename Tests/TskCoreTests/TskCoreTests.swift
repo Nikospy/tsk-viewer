@@ -348,3 +348,30 @@ func archiveOfChangedTaskNeverArchives(fresh: TskTask) async {
     #expect(await service(script).perform(.toDo, on: task(.open)).outcome == .needsConfirmation)
     #expect(await script.calls.count == 1)
 }
+
+@Test func boardTimesReadTaskMoments() {
+    let store = #"{"format_version":5,"tasks":[{"number":70,"created_at":[1792579592,716712000],"updated_at":[1792579662,0]},{"number":71,"created_at":[1792579600,0]},{"number":72}]}"#
+    let times = BoardTimes.parse(Data(store.utf8))
+    #expect(times["T70"]?.created.timeIntervalSince1970 == 1792579592.716712)
+    #expect(times["T70"]?.updated.timeIntervalSince1970 == 1792579662)
+    #expect(times["T71"]?.updated == times["T71"]?.created)
+    #expect(times["T72"] == nil)
+    #expect(BoardTimes.parse(Data("[]".utf8)).isEmpty)
+    #expect(BoardTimes.parse(Data("not json".utf8)).isEmpty)
+}
+
+@Test func boardTimesStoreFollowsStateDir() {
+    #expect(BoardTimes.storeURL(environment: ["TSK_STATE_DIR": "/tmp/board"]).path == "/tmp/board/tsk.json")
+    #expect(BoardTimes.storeURL(environment: [:]).path.hasSuffix("/.tsk/tsk.json"))
+}
+
+@Test func boardTimesLabelShowsYearOnlyWhenNeeded() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "Europe/Warsaw")!
+    let date = calendar.date(from: DateComponents(year: 2026, month: 10, day: 22, hour: 8, minute: 44))!
+    let now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 23))!
+    let nextYear = calendar.date(from: DateComponents(year: 2027, month: 1, day: 2))!
+    #expect(BoardTimes.label(date, now: now, calendar: calendar, language: .en) == "Oct 22 08:44")
+    #expect(BoardTimes.label(date, now: now, calendar: calendar, language: .pl) == "22.10 08:44")
+    #expect(BoardTimes.label(date, now: nextYear, calendar: calendar, language: .pl) == "22.10.2026 08:44")
+}
