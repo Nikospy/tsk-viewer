@@ -357,7 +357,11 @@ final class ViewerModel: ObservableObject {
         saving = true
         let result = await service.retryStatus(retry)
         apply(result, id: id)
-        if result.outcome == .completed { lastCommand = "tsk status \(id) \(retry.targetStatus.rawValue)" }
+        if result.outcome == .completed {
+            lastCommand = "tsk status \(id) \(retry.targetStatus.rawValue)"
+            // A retry exists only after the text was saved, so the message always points at the last reply line.
+            await notifyAgent(retry.action, task: retry.expectedTask, commented: true)
+        }
         saving = false
         await refresh()
     }

@@ -52,11 +52,13 @@ public enum ReplyNotes {
 }
 
 /// Opaque continuation issued only after a reply was confirmed saved. Retry never edits notes.
+/// It carries the action, so a completed retry tells the agent the same as the first attempt would have.
 public struct StatusRetry: Equatable, Sendable {
     public let expectedTask: TskTask
     public let targetStatus: WritableStatus
-    fileprivate init(expectedTask: TskTask, targetStatus: WritableStatus) {
-        self.expectedTask = expectedTask; self.targetStatus = targetStatus
+    public let action: TaskAction
+    fileprivate init(expectedTask: TskTask, targetStatus: WritableStatus, action: TaskAction) {
+        self.expectedTask = expectedTask; self.targetStatus = targetStatus; self.action = action
     }
 }
 
@@ -119,7 +121,7 @@ public actor TaskActionService {
                     }
                     // An external status change after edit must not be overwritten.
                     guard confirmed.status == baseline.status else { return conflict(confirmed, mutation: edit) }
-                    let retry = StatusRetry(expectedTask: confirmed, targetStatus: target)
+                    let retry = StatusRetry(expectedTask: confirmed, targetStatus: target, action: action)
                     return await changeStatus(expected: confirmed, target: target, retry: retry)
                 default:
                     return result(.notWritten, task: fresh, message: edit.message ?? L("The reply was not saved.", pl: "Odpowiedź nie została zapisana."), mutation: edit)
@@ -218,7 +220,7 @@ public actor TaskActionService {
         // A fresh notes baseline is usable only after explicit confirmation, and only while
         // the original action's source status still holds. It never appends a second reply.
         let continuation = retry.flatMap {
-            task.status == $0.expectedTask.status ? StatusRetry(expectedTask: task, targetStatus: $0.targetStatus) : nil
+            task.status == $0.expectedTask.status ? StatusRetry(expectedTask: task, targetStatus: $0.targetStatus, action: $0.action) : nil
         }
         return result(.needsConfirmation, task: task, retry: continuation,
                       message: L("The task changed. Check the fresh state and confirm again. Your text was kept.", pl: "Zadanie zmieniło się. Sprawdź świeży stan i potwierdź ponownie. Wpisany tekst został zachowany."), mutation: mutation)

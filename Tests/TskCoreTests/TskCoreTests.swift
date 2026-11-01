@@ -172,6 +172,8 @@ func editRefusalDoesNotChangeStatus(code: Int32) async {
     #expect(partial.outcome == .replySavedStatusUnchanged)
     #expect(partial.message == "Reply saved, status unchanged")
     let retry = try #require(partial.retry)
+    // T181: the retry remembers the action, so the agent can still be told after it completes.
+    #expect(retry.action == .reply)
     let final = await actions.retryStatus(retry)
     #expect(final.outcome == .completed)
     #expect(await script.calls.filter { $0.first == "edit" }.count == 1)
@@ -289,6 +291,7 @@ func indeterminateStatusClassifications(observedStatus: TskStatus) async {
     #expect(result.task == changed)
     let confirmedRetry = try #require(result.retry)
     #expect(confirmedRetry.expectedTask == changed)
+    #expect(confirmedRetry.action == .reply)
     #expect(await script.calls.filter { $0.first == "edit" }.count == 1)
     #expect(await script.calls.filter { $0.first == "status" }.count == 1)
     let final = await actions.retryStatus(confirmedRetry)
