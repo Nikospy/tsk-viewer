@@ -443,7 +443,10 @@ private struct ActionBar: View {
     }
 
     private var hint: String {
-        if confirming == .accept { return L("click again to mark it done", pl: "kliknij jeszcze raz, żeby oznaczyć jako zrobione") }
+        if confirming == .accept {
+            return hasText ? L("click again to mark it done — the text goes to the notes as a comment", pl: "kliknij jeszcze raz, żeby oznaczyć jako zrobione — tekst trafi do notatek jako komentarz")
+                : L("click again to mark it done", pl: "kliknij jeszcze raz, żeby oznaczyć jako zrobione")
+        }
         if confirming == .archive { return L("click again — the task goes to the archive, no agent gets a message", pl: "kliknij jeszcze raz — zadanie trafi do archiwum, agent nie dostanie wiadomości") }
         let quick = "⌘⏎ " + (quickAction?.title.lowercased() ?? "")
         if replyAction == nil {
@@ -452,12 +455,14 @@ private struct ActionBar: View {
                 : quick + L(" · agents can pick it up; no message is sent", pl: " · agenci mogą go wziąć; nikt nie dostaje wiadomości")
         }
         let prefix = Language.current.replyPrefix
+        // With text in the field both keys keep it: ⏎ replies, ⌘⏎ agrees or accepts with it as a comment.
+        let both = "⏎ " + (replyAction?.title.lowercased() ?? "") + " · " + quick
         if let agent = model.targetAgent, model.checked.isEmpty {
             let name = agent.name ?? agent.folder
-            return hasText ? L("⏎ sends · the text goes to the notes as “\(prefix)” and to \(name)", pl: "⏎ wysyła · tekst trafi do notatek jako „\(prefix)” i do \(name)")
+            return hasText ? both + L(" · the text goes to the notes as “\(prefix)” and to \(name)", pl: " · tekst trafi do notatek jako „\(prefix)” i do \(name)")
                 : quick + L(" · \(name) gets a message", pl: " · \(name) dostanie wiadomość")
         }
-        if hasText { return L("⏎ sends · the text goes to the notes as “\(prefix)”, the task returns to the agent", pl: "⏎ wysyła · tekst trafi do notatek jako „\(prefix)”, zadanie wraca do agenta") }
+        if hasText { return both + L(" · the text goes to the notes as “\(prefix)”", pl: " · tekst trafi do notatek jako „\(prefix)”") }
         return quick + (quickAction == .accept
             ? L(" · or write what to fix", pl: " · albo napisz, co poprawić")
             : L(" · or reply in your own words", pl: " · albo odpowiedz własnymi słowami"))

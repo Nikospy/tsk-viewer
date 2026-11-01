@@ -89,9 +89,11 @@ Po decyzji aplikacja wkleja agentowi w Herdr jedną linię zaczynającą się od
 | Wiadomość `tsk:` | Co robi agent |
 | --- | --- |
 | `zgoda, status ready` | przyjmuje rekomendację z notatek, `tsk status T# start`, wykonuje |
+| `zgoda z uwagami w notatkach (ostatnia linia Odp:)` | jak zgoda, ale rekomendację koryguje ostatnia linia `Odp:` |
 | `odpowiedź dopisana do notatek (ostatnia linia Odp:)` | `tsk list T# --json`, działa według ostatniej linii `Odp:` |
 | `uwagi do poprawki w notatkach (ostatnia linia Odp:)` | poprawia według `Odp:`, potem znowu `review` |
 | `zaakceptowane, status done` | zadanie zamknięte; status zostaje |
+| `zaakceptowane z uwagami w notatkach (ostatnia linia Odp:)` | zadanie zamknięte; status zostaje, uwagę z `Odp:` wykonuje (np. sprzątanie) |
 | `gracz prosi o omówienie i realizację: …` | czyta zadania i proponuje plan, zanim zmieni status |
 
 „gracz” to użytkownik. Wersję angielską opisuje [README.md](README.md#messages-to-agents).

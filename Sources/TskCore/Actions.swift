@@ -14,6 +14,10 @@ public enum TaskAction: String, CaseIterable, Sendable, Identifiable {
         }
     }
     public var requiresReply: Bool { self == .reply || self == .sendBack }
+    /// Agree and accept carry an optional comment: text typed in the field goes to the notes too, never lost.
+    public func appendsReply(_ reply: String) -> Bool {
+        requiresReply || (notifiesAgent && !reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+    }
     /// Archive keeps the status, so it has no target status.
     public var targetStatus: WritableStatus? {
         switch self {
@@ -94,12 +98,13 @@ public actor TaskActionService {
         var latest: TskTask? = baseline
         var mutated = false
         do {
-            let expectedNotes = action.requiresReply ? try ReplyNotes.appending(reply, to: baseline.notes) : baseline.notes
+            let appends = action.appendsReply(reply)
+            let expectedNotes = appends ? try ReplyNotes.appending(reply, to: baseline.notes) : baseline.notes
             let fresh = try await current(baseline.id)
             latest = fresh
             guard matches(fresh, baseline) else { return conflict(fresh) }
             guard let target = action.targetStatus else { return await archive(expected: fresh) }
-            if action.requiresReply {
+            if appends {
                 let edit = try await client.editNotes(baseline.id, notes: expectedNotes)
                 switch edit {
                 case .acknowledged, .indeterminate:

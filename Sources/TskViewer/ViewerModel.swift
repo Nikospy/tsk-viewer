@@ -249,8 +249,8 @@ final class ViewerModel: ObservableObject {
 
     /// Runs only after a confirmed save. A message that does not arrive is never silent: the user
     /// must know the agent learns about the decision only from the board.
-    private func notifyAgent(_ action: TaskAction, task: TskTask) async {
-        guard let text = AgentMessage.decision(action, task: task) else { return }
+    private func notifyAgent(_ action: TaskAction, task: TskTask, commented: Bool) async {
+        guard let text = AgentMessage.decision(action, task: task, commented: commented) else { return }
         guard let agent = targetAgent else {
             let reason = if let pane = targetPane {
                 L("the chosen agent (\(pane)) is gone", pl: "wybranego agenta (\(pane)) już nie ma")
@@ -336,16 +336,17 @@ final class ViewerModel: ObservableObject {
     private func perform(_ action: TaskAction, id: String) async {
         guard !saving, let detail = details[id] else { return }
         saving = true
+        let commented = action.appendsReply(detail.reply)
         let result = await service.perform(action, on: detail.task, reply: detail.reply)
         apply(result, id: id)
         if result.outcome == .completed {
             if let target = action.targetStatus {
                 let status = "tsk status \(id) \(target.rawValue)"
-                lastCommand = action.requiresReply ? "tsk edit \(id) --notes=… && \(status)" : status
+                lastCommand = commented ? "tsk edit \(id) --notes=… && \(status)" : status
             } else {
                 lastCommand = "tsk archive \(id)"
             }
-            await notifyAgent(action, task: detail.task)
+            await notifyAgent(action, task: detail.task, commented: commented)
         }
         saving = false
         await refresh()

@@ -126,6 +126,11 @@ func knownDialogsBlockTheSend(kind: String, name: String, dialog: String) throws
     #expect(AgentMessage.decision(.sendBack, task: task, language: .en)
         == "tsk: T4 “Odświeżyć caissa-state.md” — user: changes requested in notes (last Reply: line), status ready. Details: tsk list T4 --json")
     #expect(AgentMessage.decision(.reply, task: task, language: .pl)?.contains("(ostatnia linia Odp:)") == true)
+    #expect(AgentMessage.decision(.agree, task: task, language: .pl)?.contains("gracz: zgoda, status ready.") == true)
+    #expect(AgentMessage.decision(.agree, task: task, commented: true, language: .pl)?
+        .contains("gracz: zgoda z uwagami w notatkach (ostatnia linia Odp:), status ready.") == true)
+    #expect(AgentMessage.decision(.accept, task: task, commented: true, language: .en)?
+        .contains("user: accepted with notes (last Reply: line), status done.") == true)
     // Open tasks have no agent and closing tells nobody: these actions have no message at all.
     for language in Language.allCases {
         #expect(AgentMessage.decision(.toDo, task: task, language: language) == nil)

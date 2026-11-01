@@ -85,6 +85,34 @@ private func service(_ script: Script) -> TaskActionService {
     #expect(await script.exhausted())
 }
 
+/// T180: a comment typed before "agree" or "accept" used to vanish; now it is saved before the status.
+@Test func agreeAndAcceptKeepTypedComment() async {
+    let saved = task(notes: "agent\nReply: Tak")
+    let agree = Script([
+        Exchange(fetch, read(task())), Exchange(edit, ok), Exchange(fetch, read(saved)),
+        Exchange(fetch, read(saved)), Exchange(ready, ok), Exchange(fetch, read(task(.ready, notes: saved.notes)))
+    ])
+    #expect(await service(agree).perform(.agree, on: task(), reply: " Tak \n").outcome == .completed)
+    #expect(await agree.exhausted())
+
+    let baseline = task(.review)
+    let savedReview = task(.review, notes: saved.notes)
+    let accept = Script([
+        Exchange(fetch, read(baseline)), Exchange(edit, ok), Exchange(fetch, read(savedReview)),
+        Exchange(fetch, read(savedReview)), Exchange(["status", "T12", "done"], ok), Exchange(fetch, read(task(.done, notes: saved.notes)))
+    ])
+    #expect(await service(accept).perform(.accept, on: baseline, reply: "Tak").outcome == .completed)
+    #expect(await accept.exhausted())
+
+    // Blank text is no comment: agree only changes the status.
+    let plain = Script([Exchange(fetch, read(task())), Exchange(fetch, read(task())), Exchange(ready, ok), Exchange(fetch, read(task(.ready)))])
+    #expect(await service(plain).perform(.agree, on: task(), reply: " \n\t").outcome == .completed)
+    #expect(await plain.exhausted())
+
+    #expect(TaskAction.allCases.filter { $0.appendsReply("x") } == [.agree, .reply, .accept, .sendBack])
+    #expect(TaskAction.allCases.filter { $0.appendsReply(" ") } == [.reply, .sendBack])
+}
+
 @Test func dashLeadingNotesAreSingleArgument() async throws {
     let script = Script([Exchange(["edit", "T12", "--notes=-5\nReply: -tak"], ok)])
     let client = TskClient(environment: [:], runner: script)

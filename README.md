@@ -93,9 +93,11 @@ Tell your agents what these messages mean, for example in `CLAUDE.md` or `AGENTS
 | `tsk:` message | What the agent does |
 | --- | --- |
 | `approved, status ready` | takes the recommendation from the notes, `tsk status T# start`, does the work |
+| `approved with notes (last Reply: line)` | as approved, but the last `Reply:` line amends the recommendation |
 | `reply added to notes (last Reply: line)` | `tsk list T# --json`, acts on the last `Reply:` line |
 | `changes requested in notes (last Reply: line)` | fixes per `Reply:`, then `review` again |
 | `accepted, status done` | the task is closed; leave the status |
+| `accepted with notes (last Reply: line)` | task closed; status stays, acts on the `Reply:` note (e.g. cleanup) |
 | `user asks to discuss and carry out: …` | reads the tasks and proposes a plan before changing any status |
 
 For this loop to work, agents ask their questions as `blocked` tasks (title = the question, options and a recommendation in the notes) and hand finished work back as `review`. Scripts that relay replies to agents must read the **last** reply line, not the first: replies are appended at the end of the notes.
